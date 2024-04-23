@@ -1,1 +1,2 @@
-# geo_pie
+# GeoPie
+Модуль QGis

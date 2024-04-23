@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SaveAttributesDialogBase</class>
+ <widget class="QDialog" name="SaveAttributesDialogBase">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>411</width>
+    <height>514</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Построение профиля разреза</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../../../../../../../../../../.designer/backup/icons/icon.png</normaloff>../../../../../../../../../../.designer/backup/icons/icon.png</iconset>
+  </property>
+  <widget class="QWidget" name="verticalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>391</width>
+     <height>491</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="sizeConstraint">
+     <enum>QLayout::SetDefaultConstraint</enum>
+    </property>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab_main">
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
+       </property>
+       <attribute name="title">
+        <string>Основные</string>
+       </attribute>
+       <widget class="QGroupBox" name="groupBox_izline">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>60</y>
+          <width>361</width>
+          <height>176</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Высоты</string>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <layout class="QFormLayout" name="formLayout">
+         <item row="0" column="0">
+          <widget class="QRadioButton" name="radioButton_srtm">
+           <property name="text">
+            <string>Слой SRTM</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0" colspan="2">
+          <widget class="QComboBox" name="comboBox_SRTM"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QRadioButton" name="radioButton_izline">
+           <property name="text">
+            <string>Изолинии</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="2">
+          <widget class="QComboBox" name="comboBox_izline"/>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_attrIzline">
+           <property name="text">
+            <string>Атрибут с высотами</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QComboBox" name="comboBox_attrIzline"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QComboBox" name="comboBox_outcrop">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>30</y>
+          <width>361</width>
+          <height>20</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_outcrop">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>239</width>
+          <height>13</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Линия разреза</string>
+        </property>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_scale">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>250</y>
+          <width>361</width>
+          <height>91</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Масштаб</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_5">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_vScale">
+           <property name="text">
+            <string>Вертикальный коэффициент</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="spinBox_vScale">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>30</number>
+           </property>
+           <property name="value">
+            <number>10</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_mapScale">
+           <property name="text">
+            <string>Масштаб карты</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="spinBox_mapScale">
+           <property name="minimum">
+            <number>5000</number>
+           </property>
+           <property name="maximum">
+            <number>1000000</number>
+           </property>
+           <property name="singleStep">
+            <number>5000</number>
+           </property>
+           <property name="value">
+            <number>100000</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="tab_wells">
+       <attribute name="title">
+        <string>Скважины</string>
+       </attribute>
+       <widget class="QComboBox" name="comboBox_wells">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>30</y>
+          <width>361</width>
+          <height>20</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_wells">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>11</y>
+          <width>239</width>
+          <height>13</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Скважины</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="tab_age">
+       <attribute name="title">
+        <string>Возраста</string>
+       </attribute>
+       <widget class="QGroupBox" name="groupBox_age">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>361</width>
+          <height>101</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Геологические возроста</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_3">
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_age">
+           <property name="text">
+            <string>Слой полигонов</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="comboBox_age"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_attrAge">
+           <property name="text">
+            <string>Атрибут возрастов</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="comboBox_attrAge"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="tab_river">
+       <attribute name="title">
+        <string>Водоемы</string>
+       </attribute>
+       <widget class="QGroupBox" name="groupBox_river">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>361</width>
+          <height>181</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Водоемы</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <layout class="QFormLayout" name="formLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_lnRiver">
+           <property name="text">
+            <string>Реки слой линий</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="comboBox_lnRiver"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_plgRiver">
+           <property name="text">
+            <string>Реки слой полигонов</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="comboBox_plgRiver"/>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="comboBox_attrLnriver"/>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="comboBox_attrPlgriver"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_attrLnriver">
+           <property name="text">
+            <string>Атрибут с названием</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_attrPlgriver">
+           <property name="text">
+            <string>Атрибут с названием</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_path">
+      <property name="title">
+       <string>Сохранить</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="1" column="0">
+        <widget class="QLineEdit" name="lineEdit"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_path">
+         <property name="text">
+          <string>Выбрать каталог</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QPushButton" name="pushButton">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QDialogButtonBox" name="button_box">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="standardButtons">
+       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>button_box</sender>
+   <signal>rejected()</signal>
+   <receiver>SaveAttributesDialogBase</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_box</sender>
+   <signal>accepted()</signal>
+   <receiver>SaveAttributesDialogBase</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
