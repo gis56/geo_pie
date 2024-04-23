@@ -26,7 +26,7 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
     #features = []
     #cssname = os.path.dirname(__file__) + '/css/style.css'
     msgBox = QtWidgets.QMessageBox()
-    encode_list = ['utf-8','Windows-1251']
+    encode_list = ['-не выбрана-','utf-8','Windows-1251']
     csv_head = []
     csvline = []
     split_char = ';'
@@ -46,22 +46,33 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
 
     # Перегрузка ok
     def accept(self):
-        if self.csv_file_widget.lineEdit().text():
-            self.point_csv()
-            self.done(QtWidgets.QDialog.Accepted)
-        else:
+        if not self.csv_file_widget.lineEdit().text():
             self.msgBox.warning(self,
                                 "Ошибка выполнения",
                                 "Файла не существует"
                                 )
+        elif not self.csvline:
+            self.msgBox.warning(self,
+                                "Ошибка выполнения",
+                                "Смените кодировку."
+                                )
+        else:
+            self.point_csv()
+            self.done(QtWidgets.QDialog.Accepted)
 
     # Выбор файла
     def csv_open(self):
         csvpath = self.csv_file_widget.lineEdit().text()
-        encode = self.encode_comboBox.currentText()
+        if self.encode_comboBox.currentIndex() == 0:
+            encode = 'utf-8'
+            encode_err = 'replace'
+        else:
+            encode = self.encode_comboBox.currentText()
+            encode_err = 'strict'
         self.csvline = []
         try:
-            with open (csvpath, 'r', encoding=encode) as csvfile:
+            with open (csvpath, 'r',
+                       encoding=encode, errors=encode_err) as csvfile:
                 for line in csvfile:
                     self.csvline.append(line.rstrip('\n'))
             self.change_head()
@@ -75,6 +86,8 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
                                 "Ошибка при открытии файла",
                                 "Смените кодировку"
                                 )
+            self.latitude_comboBox.clear()
+            self.longitude_comboBox.clear()
         except Exception as e:
             self.msgBox.warning(self, "Ошибка при открытии файла", e)
 
@@ -82,16 +95,19 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
     def change_head(self):
         self.latitude_comboBox.clear()
         self.longitude_comboBox.clear()
-        csv_head = self.csvline[0].split(self.split_char)
-        if self.field_check.isChecked():
-            self.latitude_comboBox.addItems(csv_head)
-            self.longitude_comboBox.addItems(csv_head)
-            self.csv_head = csv_head
-        else:
-            cl = ['field'+str(i+1)+' | '+cl for i, cl in enumerate(csv_head)]
-            self.latitude_comboBox.addItems(cl)
-            self.longitude_comboBox.addItems(cl)
-            self.csv_head = ['field'+str(i+1) for i in range(0, len(csv_head))]
+        if self.csvline:
+            csv_head = self.csvline[0].split(self.split_char)
+            if self.field_check.isChecked():
+                self.latitude_comboBox.addItems(csv_head)
+                self.longitude_comboBox.addItems(csv_head)
+                self.csv_head = csv_head
+            else:
+                cl = ['field'+str(i+1)+' | '+cl
+                      for i, cl in enumerate(csv_head)]
+                self.latitude_comboBox.addItems(cl)
+                self.longitude_comboBox.addItems(cl)
+                self.csv_head = ['field'+str(i+1)
+                                 for i in range(0, len(csv_head))]
 
     def point_csv(self):
         csvpoint_virtLayer = QgsVectorLayer("Point?crs=epsg:28410",
