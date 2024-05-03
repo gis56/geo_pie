@@ -1,5 +1,5 @@
 import os
-
+from sys import getdefaultencoding
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtWidgets import QAction, QFileDialog
@@ -18,27 +18,42 @@ FORM_CLASS_1, _ = uic.loadUiType(os.path.join(
 
 
 class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
-
-    #pnt_layer = []
     project = QgsProject.instance()
-    #plugin_dir = os.path.dirname(__file__)
-    #filename = ''
-    #features = []
-    #cssname = os.path.dirname(__file__) + '/css/style.css'
     msgBox = QtWidgets.QMessageBox()
-    encode_list = ['-не выбрана-','utf-8','Windows-1251']
+    # Список кодировок
+    encode_list = ['utf-8',
+                   'Windows-1251']
+    encode_sel = {'name':'utf-8', 'err':'replace'}
+    # Заголовки полей атрибутивной таблицы
     csv_head = []
+    # Список стор файла .csv
     csvline = []
     split_char = ';'
 
     def __init__(self, parent=None):
         super(csvShape, self).__init__(parent)
         self.setupUi(self)
+        # Инициализация выбора кодировки
+        self.encode_comboBox.addItem('- не выбрана -')
+        self.encode_comboBox.insertSeparator(1)
         self.encode_comboBox.addItems(self.encode_list)
-        self.csv_file_widget.setFilter('*.csv;; *.txt;; *')
+        self.encode_comboBox.currentIndexChanged.connect(self.set_encode)
+
+        self.csv_file_widget.setFilter('Таблица с разделителем CSV (*.csv);;\
+                                       Любой файл (*)')
         self.csv_file_widget.fileChanged.connect(self.csv_open)
         self.field_check.clicked.connect(self.change_head)
-        self.encode_comboBox.currentIndexChanged.connect(self.csv_open)
+
+    # Выбор кодировки
+    def set_encode(self):
+        if self.encode_comboBox.currentIndex() == 0:
+            self.encode_sel['name'] = 'utf-8'
+            self.encode_sel['err'] = 'replace'
+        else:
+            self.encode_sel['name'] = self.encode_comboBox.currentText()
+            self.encode_sel['err'] = 'strict'
+        if self.csv_file_widget.lineEdit().text():
+            self.csv_open()
 
     # Подготовка и запуск формы диалога
     def run(self):
@@ -62,17 +77,13 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
 
     # Выбор файла
     def csv_open(self):
+        # Чтение файла
         csvpath = self.csv_file_widget.lineEdit().text()
-        if self.encode_comboBox.currentIndex() == 0:
-            encode = 'utf-8'
-            encode_err = 'replace'
-        else:
-            encode = self.encode_comboBox.currentText()
-            encode_err = 'strict'
         self.csvline = []
         try:
             with open (csvpath, 'r',
-                       encoding=encode, errors=encode_err) as csvfile:
+                       encoding=self.encode_sel['name'],
+                       errors=self.encode_sel['err']) as csvfile:
                 for line in csvfile:
                     self.csvline.append(line.rstrip('\n'))
             self.change_head()
@@ -108,7 +119,7 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
                 self.longitude_comboBox.addItems(cl)
                 self.csv_head = ['field'+str(i+1)
                                  for i in range(0, len(csv_head))]
-
+    # Создание слоя точек
     def point_csv(self):
         csvpoint_virtLayer = QgsVectorLayer("Point?crs=epsg:28410",
                                             "csvpoint",
@@ -124,16 +135,22 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
         if self.field_check.isChecked():
             self.csvline.pop(0)
         # Формирование геометрии точек
-        ix = self.longitude_comboBox.currentIndex()
-        iy = self.latitude_comboBox.currentIndex()
+        index_x = self.longitude_comboBox.currentIndex()
+        index_y = self.latitude_comboBox.currentIndex()
         csvpoint_fet = QgsFeature()
         for feat in self.csvline:
+            if not self.decode_check.isChecked():
+                feat = feat.encode('utf-8').decode(self.encode_sel['name'])
             records = feat.split(self.split_char)
-            csvpoint_geom = QgsGeometry.fromPointXY(QgsPointXY(
-                                float(records[ix].strip().replace(',','.')),
-                                float(records[iy].strip().replace(',','.'))
+            try:
+                point_x = float(records[index_x].strip().replace(',','.'))
+                point_y = float(records[index_y].strip().replace(',','.'))
+            except ValueError as e:
+                self.msgBox.warning(self, "Ошибка приведения типов.", str(e))
+                break
+            csvpoint_geom = QgsGeometry.fromPointXY(QgsPointXY(point_x,
+                                                               point_y)
                             )
-            )
             csvpoint_fet.setGeometry(csvpoint_geom)
             # Формирование аттрибутов точек (запись в аттрибутивную таблицу)
             csvpoint_fet.setAttributes(records)
@@ -144,8 +161,3 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
         del csvpoint_virtProvider
 
         self.project.addMapLayer(csvpoint_virtLayer, True)
-    """
-        graph_virtLayer.loadNamedStyle(
-            self.plugin_dir + '/legstyle/graph_line.qml'
-        )
-    """
