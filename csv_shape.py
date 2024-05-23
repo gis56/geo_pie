@@ -12,6 +12,7 @@ from qgis.core import (QgsProject,
                        QgsGeometry,
                        QgsFeature,
                        QgsPointXY)
+from .utilib import *
 
 FORM_CLASS_1, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/csv_to_shape.ui'))
@@ -36,8 +37,12 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
         # Инициализация выбора кодировки
         self.encode_comboBox.addItem('- не выбрана -')
         self.encode_comboBox.insertSeparator(1)
-        self.encode_comboBox.addItems(self.encode_list)
+        self.enc = EncDec()
+        self.encode_comboBox.addItems(self.enc.get_codelist())
         self.encode_comboBox.currentIndexChanged.connect(self.set_encode)
+
+        #self.encode_comboBox.addItems(self.encode_list)
+        #self.encode_comboBox.currentIndexChanged.connect(self.set_encode)
 
         self.csv_file_widget.setFilter('Таблица с разделителем CSV (*.csv);;\
                                        Любой файл (*)')
@@ -46,14 +51,9 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
 
     # Выбор кодировки
     def set_encode(self):
-        if self.encode_comboBox.currentIndex() == 0:
-            self.encode_sel['name'] = 'utf-8'
-            self.encode_sel['err'] = 'replace'
-        else:
-            self.encode_sel['name'] = self.encode_comboBox.currentText()
-            self.encode_sel['err'] = 'strict'
+        self.enc.set_enc(self.encode_comboBox.currentIndex())
         if self.csv_file_widget.lineEdit().text():
-            self.csv_open()
+            self.csv_open(False)
 
     # Подготовка и запуск формы диалога
     def run(self):
@@ -76,17 +76,20 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
             self.done(QtWidgets.QDialog.Accepted)
 
     # Выбор файла
-    def csv_open(self):
+    def csv_open(self, update_head=True):
         # Чтение файла
         csvpath = self.csv_file_widget.lineEdit().text()
         self.csvline = []
         try:
             with open (csvpath, 'r',
-                       encoding=self.encode_sel['name'],
-                       errors=self.encode_sel['err']) as csvfile:
+                       encoding=self.enc.enc,
+                       errors=self.enc.err) as csvfile:
                 for line in csvfile:
                     self.csvline.append(line.rstrip('\n'))
-            self.change_head()
+
+            if update_head:
+                self.change_head()
+
         except FileNotFoundError:
             self.msgBox.warning(self,
                                 "Ошибка при открытии файла",
@@ -97,8 +100,6 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
                                 "Ошибка при открытии файла",
                                 "Смените кодировку"
                                 )
-            self.latitude_comboBox.clear()
-            self.longitude_comboBox.clear()
         except Exception as e:
             self.msgBox.warning(self, "Ошибка при открытии файла", e)
 
@@ -121,9 +122,8 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
                                  for i in range(0, len(csv_head))]
     # Создание слоя точек
     def point_csv(self):
-        csvpoint_virtLayer = QgsVectorLayer("Point?crs=epsg:28410",
-                                            "csvpoint",
-                                            "memory")
+        uri = "Point?crs=epsg:{}".format(self.project.crs().postgisSrid())
+        csvpoint_virtLayer = QgsVectorLayer(uri, "csvpoint", "memory")
         csvpoint_virtProvider = csvpoint_virtLayer.dataProvider()
         # Сформировать список аттрибутов
         attr_list = []
@@ -140,7 +140,8 @@ class csvShape(QtWidgets.QDialog, FORM_CLASS_1):
         csvpoint_fet = QgsFeature()
         for feat in self.csvline:
             if not self.decode_check.isChecked():
-                feat = feat.encode('utf-8').decode(self.encode_sel['name'])
+                #feat = feat.encode('utf-8').decode(self.encode_sel['name'])
+                feat = self.enc.get_utf2sel(feat)
             records = feat.split(self.split_char)
             try:
                 point_x = float(records[index_x].strip().replace(',','.'))

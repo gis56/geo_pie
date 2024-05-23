@@ -10,14 +10,17 @@ from qgis.core import (QgsProject,
                        QgsVectorLayer,
                        QgsField,
                        QgsGeometry,
-                       QgsFeature)
+                       QgsFeature,
+                       QgsFieldProxyModel,
+                       QgsMapLayerProxyModel)
+
+from .utilib import *
 
 FORM_CLASS_1, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/wells_matrix.ui'))
 
 class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
 
-    pnt_layer = []
     project = QgsProject.instance()
     plugin_dir = os.path.dirname(__file__)
     filename = ''
@@ -29,95 +32,72 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
         super(WellsMatrix, self).__init__(parent)
         self.setupUi(self)
 
-        self.pushButton_save_html.clicked.connect(self.select_html_file)
+        # Реакция на выбор слоя в mLayer
+        self.mLayer.activated.connect(self.activ_mLayer)
+        self.mLayer.currentIndexChanged.connect(self.activ_mLayer)
+        self.mFile.setFilter('Таблица с разделителем CSV (*.csv);;\
+                              Web - страница  (*.htm)')
 
-        self.comboBox_layerName.activated.connect(self.activ_layerName)
-        self.comboBox_layerName.currentIndexChanged.connect(self.activ_layerName)
+        # Инициализация выбора кодировки
+        self.encode_combo.addItem('- не выбрана -')
+        self.encode_combo.insertSeparator(1)
+        self.enc = EncDec()
+        self.encode_combo.addItems(self.enc.get_codelist())
+        self.encode_combo.currentIndexChanged.connect(self.set_encode)
 
         self.checkBox_matrix.setChecked(False)
 
-    # Описание реакции кнопки выбора файла
-    def select_html_file(self):
-        self.filename, filter = QFileDialog.getSaveFileName(
-            self,
-            "Выберите файл для хранения таблицы ",
-            "w_mtrx01",
-            'Web (*.htm);;CSV table (*.csv)'
-        )
-        self.lineEdit_save_html.setText(self.filename)
+    # Выбор кодировки
+    def set_encode(self):
+        self.enc.set_enc(self.encode_combo.currentIndex())
 
-    # Описание реакции comboBox со слоями точек (скважин)
-    def activ_layerName(self) :
-        wells_vLayer = self.pnt_layer[self.comboBox_layerName.currentIndex()]
-        if wells_vLayer :
-            fields = wells_vLayer.fields()
-            fields_int = []
+    # Описание реакции mLayer на активацию и выбор
+    def activ_mLayer(self):
+        self.mLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.mField.setFilters(QgsFieldProxyModel.String|QgsFieldProxyModel.Int)
+        self.mField.setLayer(self.mLayer.currentLayer())
 
-            for field in fields :
-                fields_int.append(field.name())
+        self.checkBox_Features.setChecked(False)
+        # Получение выбранного слоя
+        wells_vLayer = self.mLayer.currentLayer()
+        # Проверка на наличие выборки. Если есть выбранные объекты,
+        # сделать доступным галочку
+        if wells_vLayer.selectedFeatures() :
+            self.checkBox_Features.setEnabled(True)
+        else :
+            self.checkBox_Features.setEnabled(False)
 
-            self.comboBox_selField.clear()
-            self.comboBox_selField.addItems(fields_int)
-            self.checkBox_Features.setChecked(False)
-
-            # Проверка на наличие выборки. Если есть выбранные объекты,
-            # сделать доступным галочку
-
-            if wells_vLayer.selectedFeatures() :
-                self.checkBox_Features.setEnabled(True)
-            else :
-                self.checkBox_Features.setEnabled(False)
 
     # Перегрузка метода диалогового окна accept для
     # проверки заполненности всех полей формы
     def accept (self) :
-        # Путь к файлу должен быть взят из lineEdit
         # На случай удаления пути в ручную
-        self.filename = self.lineEdit_save_html.text()
+        self.filename = self.mFile.lineEdit().text()
         # Проверка пути к файлу и выбранного поля
-        #if os.path.isfile(self.filename) and \
-        #self.comboBox_selField.currentText():
         dir_name = os.path.dirname(self.filename)
-        if os.path.isdir(dir_name) and self.comboBox_selField.currentText():
+        if os.path.isdir(dir_name) and self.mField.currentField():
             self.exec_matrx()
             self.done(QtWidgets.QDialog.Accepted)
         else :
-            self.msgBox.warning(self,"Матрица скважин", "Не все поля заполнены.")
+            self.msgBox.warning(self,"Матрица скважин",
+                                "Не все поля заполнены.")
 
     # Подготовка и запуск формы диалога
     def run(self):
-        self.comboBox_layerName.clear()
-        self.comboBox_selField.clear()
-
-        # Получение списка векторных слоев проекта
-        layers = self.project.mapLayers()
-        layers_val = layers.values()
-        layer_name = [layer.name() for layer in layers_val]
-        layer_type = [str(layer.type()) for layer in layers_val]
-
-        for layer in layers_val:
-            # Тип слоя - векторный
-            if layer.type() == 0:
-                # Тип геометрии - точка
-                if layer.geometryType() == 0 :
-                    # Отсеянные слои в список. Индексы в pnt_layer и в
-                    # comboBox_layerName для слоя будут одинаковые
-                    self.pnt_layer.append(layer)
-                    self.comboBox_layerName.addItems([layer.name()])
+        self.activ_mLayer()
         self.exec_()
 
     # Подготовка данных для записи в файлы таблиц
     def exec_matrx (self) :
-        # Получение уникального индекса слоя по выбранному индексу
-        # comboBox_layerName и поиск по нему слоя в проекте
-        wells_vLayer = self.pnt_layer[self.comboBox_layerName.currentIndex()]
+        # Получение выбранного слоя
+        wells_vLayer = self.mLayer.currentLayer()
         # Создание списка объектов в зависимости от состояние галочки
         if self.checkBox_Features.isChecked() :
             self.features = wells_vLayer.selectedFeatures()
         else :
-            self.features =  [feature for feature in wells_vLayer.getFeatures()]
-        # Название поля с именами объектов
-        selField = self.comboBox_selField.currentText()
+            self.features=[feature for feature in wells_vLayer.getFeatures()]
+        # Получение поля с именами объектов
+        selField = self.mField.currentField()
         # Запуск процедуры составления таблиц в зависимости от выбранного
         # фильтра (расширения файла)
         if  self.filename[-3:] ==  'htm' :
@@ -137,12 +117,15 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
         with open(self.filename, 'w') as output_file:
             line = 'csv'
             for feature in self.features:
-                line = line + ';' + str(feature[selField])
+                # добавить кодировку
+                #line = line + ';' + str(feature[selField])
+                line = line + ';' + self.enc.get_utfstr(feature[selField])
             line = line + '\n'
             output_file.write(line)
 
             for i, feature in enumerate(self.features):
-                line = str(feature[selField])
+                #line = str(feature[selField])
+                line = self.enc.get_utfstr(feature[selField])
                 geom = feature.geometry()
                 for j, feature_out in enumerate(self.features):
                     if i == j :
@@ -162,19 +145,29 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
 
         with open(self.filename, 'w') as output_file, \
              open(self.cssname,'r') as css_file:
-            line = '<style>\n' + css_file.read() + '</style>\n'
+            line = '''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"\
+            "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n
+            <head>\n<meta http-equiv="Content-Type"\
+            content="text/html; charset=utf-8">\n
+            <title>Матрица расстояний.</title>\n'''
+
+            line = line + '<style>\n' + css_file.read() + '</style>\n'
+            line = line + '</head>\n<body>\n'
             line = line + '<table class="table">\n<thead>\n'
             output_file.write(line)
 
             line = '<tr><th></th>'
 
             for feature in self.features:
-                line = line + '<th>' + str(feature[selField]) + '</th>'
+                # добавить кодировку
+                line = line + '<th>' + self.enc.get_utfstr(feature[selField])\
+                    + '</th>'
             line = line + '<tr>\n</thead>\n<tbody>\n'
             output_file.write(line)
 
             for i, feature in enumerate(self.features):
-                line = '<tr><th>' + str(feature[selField]) + '</th>'
+                line = '<tr><th>' + self.enc.get_utfstr(feature[selField]) \
+                    + '</th>'
                 geom = feature.geometry()
                 for j, feature_out in enumerate(self.features):
                     if i == j :
@@ -185,7 +178,7 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
                         line = line + '<td>' + "{:8.3f}".format(dist) + '</td>'
                 line = line + '<tr>' + '\n'
                 output_file.write(line)
-            line = '</tbody>\n</table>'
+            line = '</tbody>\n</table>\n</body>\n</html>'
             output_file.write(line)
 
     """

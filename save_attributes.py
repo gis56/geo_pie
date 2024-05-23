@@ -186,7 +186,7 @@ class SaveAttributes:
 
         self.first_start = True
 
-        icon_path = self.plugin_dir + '/icons/matrx.png'
+        icon_path = self.plugin_dir + '/icons/csv_shape.png'
         self.add_action(
             icon_path,
             text=self.tr(u'Точкии из .csv'),
