@@ -186,9 +186,8 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
     """
     def create_graph(self):
         # Виртуальный слой графа
-        graph_virtLayer = QgsVectorLayer("LineString?crs=epsg:28410",
-                                         "graph_line",
-                                         "memory")
+        uri = "LineString?crs=epsg:{}".format(self.project.crs().postgisSrid())
+        graph_virtLayer = QgsVectorLayer(uri, "graph_line", "memory")
         graph_virtProvider = graph_virtLayer.dataProvider()
         graph_virtProvider.addAttributes([QgsField("dist",QVariant.Double)])
 

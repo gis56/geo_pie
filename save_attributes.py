@@ -31,6 +31,7 @@ from .resources import *
 from .outcrop_profile import OutcropProfile
 from .wells_matrix import WellsMatrix
 from .csv_shape import csvShape
+from .zso_zone import zsoZone
 import os.path
 
 from qgis.core import QgsProject, Qgis
@@ -193,6 +194,12 @@ class SaveAttributes:
             callback=self.pointcsv,
             parent=self.iface.mainWindow())
 
+        icon_path = self.plugin_dir + '/icons/icon.png'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Зоны ЗСО'),
+            callback=self.zsozone,
+            parent=self.iface.mainWindow())
 
 
     def unload(self):
@@ -234,6 +241,14 @@ class SaveAttributes:
         csv_shape = csvShape()
         csv_shape.run()
         del csv_shape
+
+    """ Отрисовка зоны ЗСО
+        эллипсы, квадраты, радиусы
+    """
+    def zsozone(self):
+        zso_zone = zsoZone()
+        zso_zone.run()
+        del zso_zone
     """
         Конструкция скважин
     """
