@@ -26,6 +26,9 @@ class zsoZone(QtWidgets.QDialog, FORM_CLASS_1):
     plugin_dir = os.path.dirname(__file__)
     filename = ''
     features = []
+    # Состояние наличия данных в атрибутивной таблицы для поясов
+    # [III пояс, II пояс, I пояс]
+    fields_check = [False,False,False]
     azimut = 0
     msgBox = QtWidgets.QMessageBox()
 
@@ -75,9 +78,33 @@ class zsoZone(QtWidgets.QDialog, FORM_CLASS_1):
             self.features = wells_vLayer.selectedFeatures()
         else :
             self.features=[feature for feature in wells_vLayer.getFeatures()]
-        self.layer_qudrat_zone()
-        self.layer_ellipse_zone('Зона R2','zso_R2',2)
-        self.layer_ellipse_zone('Зона R3','zso_R3',3)
+        # Список полей атрибутивной таблицы
+        fnm = wells_vLayer.fields().names()
+        # Проверка на наличие полей,
+        # запуск построения зон,
+        # установка состояния наличия атрибутов для последующей корректной
+        # отрисовки радиусов
+        if 'r1' in fnm:
+            self.layer_qudrat_zone()
+            self.fields_check[2] = True
+        else:
+            self.msgBox.warning(self,"Проверка атрибутов.",
+                                "Отсутствует поле первого пояса 'r1'.")
+        if (('r_n2' in fnm) and ('r_w2' in fnm) and
+            ('r_s2' in fnm) and ('r_o2' in fnm)):
+            self.layer_ellipse_zone('Зона R2','zso_R2',2)
+            self.fields_check[1] = True
+        else:
+            self.msgBox.warning(self,"Проверка атрибутов.",
+                                "Отсутствует поля второго пояса 'r_?2'.")
+        if (('r_n3' in fnm) and ('r_w3' in fnm) and
+            ('r_s3' in fnm) and ('r_o3' in fnm)):
+            self.layer_ellipse_zone('Зона R3','zso_R3',3)
+            self.fields_check[0] = True
+        else:
+            self.msgBox.warning(self,"Проверка атрибутов.",
+                                "Отсутствует поля третьего пояса 'r_?3'.")
+
         self.arrow_dist()
 
     """ Отрисовка эллипса
@@ -241,23 +268,26 @@ class zsoZone(QtWidgets.QDialog, FORM_CLASS_1):
             center_y = geom_center.y()
             arr_begin = QgsPointXY(center_x,center_y)
             # Радиусы III-ей зоны ЗСО
-            write_in_layer(feature['r_n3'],
-                           feature['r_w3'],
-                           feature['r_s3'],
-                           feature['r_o3'],
-                           3)
+            if self.fields_check[0]:
+                write_in_layer(feature['r_n3'],
+                               feature['r_w3'],
+                               feature['r_s3'],
+                               feature['r_o3'],
+                               3)
             # Радиусы II-ой зоны ЗСО
-            write_in_layer(feature['r_n2'],
-                           feature['r_w2'],
-                           feature['r_s2'],
-                           feature['r_o2'],
-                           2)
+            if self.fields_check[1]:
+                write_in_layer(feature['r_n2'],
+                               feature['r_w2'],
+                               feature['r_s2'],
+                               feature['r_o2'],
+                               2)
             # Радиусы I-ой зоны ЗСО
-            write_in_layer(feature['r1'],
-                           feature['r1'],
-                           feature['r1'],
-                           feature['r1'],
-                           1)
+            if self.fields_check[2]:
+                write_in_layer(feature['r1'],
+                               feature['r1'],
+                               feature['r1'],
+                               feature['r1'],
+                               1)
      # Обновление слоя
         virtLayer.updateFields()
         virtLayer.updateExtents()
