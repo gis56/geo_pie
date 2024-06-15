@@ -106,7 +106,7 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
             self.csv_write (selField)
         # Создание временного слоя с графом в зависимости от состояние галочки
         if  self.checkBox_matrix.isChecked():
-            self.create_graph()
+            self.create_graph(selField)
 
     """
     Запись результатов в .csv файл
@@ -184,12 +184,15 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
     """
     Создание графа
     """
-    def create_graph(self):
+    def create_graph(self, selField):
         # Виртуальный слой графа
         uri = "LineString?crs=epsg:{}".format(self.project.crs().postgisSrid())
         graph_virtLayer = QgsVectorLayer(uri, "graph_line", "memory")
         graph_virtProvider = graph_virtLayer.dataProvider()
-        graph_virtProvider.addAttributes([QgsField("dist",QVariant.Double)])
+        graph_virtProvider.addAttributes([QgsField("dist",QVariant.Double),
+                                          QgsField("well_beg",QVariant.String),
+                                          QgsField("well_end",QVariant.String)
+                                        ])
 
         graph_fet = QgsFeature()
 
@@ -205,7 +208,11 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
                 graph_line = QgsGeometry.fromPolylineXY([geom.asPoint(),
                                                          geom_out.asPoint()])
                 graph_fet.setGeometry(graph_line)
-                graph_fet.setAttributes([dist])
+                graph_fet.setAttributes([
+                        dist,
+                        self.enc.get_utfstr(self.features[i][selField]),
+                        self.enc.get_utfstr(self.features[j][selField])
+                ])
                 graph_virtProvider.addFeature(graph_fet)
 
                 j += 1
