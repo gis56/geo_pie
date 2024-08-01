@@ -32,6 +32,8 @@ from .outcrop_profile import OutcropProfile
 from .wells_matrix import WellsMatrix
 from .csv_shape import csvShape
 from .zso_zone import zsoZone
+#from .curve_wells import CurveWells
+from .curve_wells import *
 import os.path
 
 from qgis.core import QgsProject, Qgis
@@ -201,6 +203,14 @@ class SaveAttributes:
             callback=self.zsozone,
             parent=self.iface.mainWindow())
 
+        icon_path = self.plugin_dir + '/icons/icon.png'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Изогнутые скважины'),
+            callback=self.curvwells,
+            parent=self.iface.mainWindow())
+
+
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -249,6 +259,14 @@ class SaveAttributes:
         zso_zone = zsoZone()
         zso_zone.run()
         del zso_zone
+
+    """ Проекция профиля изогнутой скважины на линию разреза
+    """
+    def  curvwells (self):
+        cut_curvwell()
+        #curve_wells = CurveWells()
+        #curve_wells.run()
+        #del curve_wells
     """
         Конструкция скважин
     """
