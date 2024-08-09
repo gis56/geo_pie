@@ -37,7 +37,9 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_1):
 
         # Настройка mLayer_cut (разрез)
         self.mLayer_cut.setFilters(QgsMapLayerProxyModel.LineLayer)
-        self.mLayer_cut.activated.connect(self.activ_mLayer_cut)
+
+        # Настройка mLayer_srtm
+        self.mLayer_srtm.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
         # Настройка типов полей атрибутов
         self.mField_well.setFilters(QgsFieldProxyModel.String)
@@ -46,10 +48,6 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_1):
 
         # Инициализация чекбокса выбранных скважин
         #self.checkBox_Features.setChecked(False)
-
-    # Действия на активацию и выбор слоя разреза в mLayer_cut
-    def activ_mLayer_cut(self):
-        self.cutline_layer = self.mLayer_cut.currentLayer()
 
     # Действия на активацию и выбор слоя скважин в mLayer
     def activ_mLayer(self):
@@ -61,7 +59,6 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_1):
     # Подготовка и запуск формы диалога
     def run(self):
         self.activ_mLayer()
-        self.activ_mLayer_cut()
         self.exec_()
         return self.result()
 
@@ -81,6 +78,9 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_1):
 
     def get_layercut (self):
         return self.mLayer_cut.currentLayer()
+
+    def get_strm (self):
+        return  self.mLayer_srtm.currentLayer().dataProvider()
 
     def get_featwells (self):
         return [feat for feat in self.mLayer.currentLayer().getFeatures()]
@@ -118,6 +118,7 @@ class pointDepthwell ():
         self.dist_begin = 0
         self.pr_line = QgsGeometry()
         self.nx_line = QgsGeometry()
+        self.vertex = QgsGeometry()
 
     # Расчет координат точек интервалов глубины
     def well_point_dept (self):
@@ -174,6 +175,7 @@ class pointDepthwell ():
                                                    QgsPointXY(cur)])
         self.nx_line = QgsGeometry.fromPolylineXY([QgsPointXY(cur),
                                                    QgsPointXY(nxt)])
+        self.vertex = QgsGeometry.fromPointXY(cur)
 
     # Подготовка геометрии и атрибутов линий скважин в пространстве
     def depth_asline (self):
@@ -214,8 +216,83 @@ class pointDepthwell ():
                          )
         return points
 
+    # Линия скважины на разрезе
+    def get_sectionLine (self, scale=1):
+        sect_points = []
+        for point in self.points_depth:
+            x, y, z = point
+            point = QgsPointXY(x, y)
+            point_geom = QgsGeometry.fromPointXY(point)
+            pr_near = self.pr_line.nearestPoint(point_geom)
+            nx_near = self.nx_line.nearestPoint(point_geom)
+
+            pr_dist = pr_near.distance(point_geom)
+            nx_dist = nx_near.distance(point_geom)
+
+            if pr_dist < nx_dist:
+                x_sect =  self.dist_begin - pr_near.distance(self.vertex)
+            else:
+                x_sect  = self.dist_begin + nx_near.distance(self.vertex)
+
+            sect_points.append(QgsPointXY(x_sect, z*scale))
+
+        geom = QgsGeometry.fromPolylineXY(sect_points)
+        attr = [self.name_well, z]
+
+        return geom, attr
 #-----------------------------------------------------------------------------
-#   pointDepthwell (feature, fields, csvdir)
+#     pointDepthwell (feature, fields, csvdir)
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Класс линий профиля рельефа.
+# Профиль рельефа строиться по srtm и по изолиниям
+#-----------------------------------------------------------------------------
+class profilSectionline ():
+    def __init__(self, feature):
+        self.geom_cutline = feature.geometry()
+        # Расчитать шаг из длины линии разреза
+        self.step_point = self.geom_cutline.length() // 100
+        self.section_points = []
+
+    def add_srtm(self, srtm):
+        # Уплотнение линии точками
+        densify_line = self.geom_cutline.densifyByDistance(self.step_point)
+        # Получение списка вершин уплотненной линии разреза
+        vertexs = densify_line.asPolyline()
+        # Получение координат вершин уплотненной линии разреза и
+        # расстояний от начала до каждой из вершин
+        #profile_points = list()
+        alt_list = list()
+        for i, vertx in enumerate(vertexs) :
+            # Получение высоты с растра strm (координата Y профиля)
+            point_outcrop = QgsPointXY(densify_line.vertexAt(i))
+            sec_y = srtm.sample(point_outcrop,1)[0]
+            alt_list.append(sec_y)
+            # Получение расстояний от начала линии разреза
+            # до текущей точки (координата X профиля)
+            sec_x = densify_line.distanceToVertex(i)
+            # Накопление списка точек профиля
+            self.section_points.append((sec_x, sec_y))
+
+    def get_srtm_geom (self, scale=1):
+        points = []
+        for point in self.section_points:
+            x,y = point
+            points.append(QgsPointXY(x, y*scale))
+        # Создание геометрии линии профиля
+        profile_line = QgsGeometry.fromPolylineXY(points)
+        # Упрощение линии профиля
+        simplify_profile_line = profile_line.simplify(5)
+        # Сглаживание линии профиля
+        smooth_profile_line = simplify_profile_line.smooth(5, 0.4, 1, 180)
+        # Упрощение линии профиля после сглаживания (удаление лишних точек)
+        simplify_profile_line = smooth_profile_line.simplify(0.5)
+
+        return simplify_profile_line
+
+#-----------------------------------------------------------------------------
+#     profilSectionline
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
@@ -226,7 +303,10 @@ class pointDepthwell ():
 class geoSectionline ():
     def __init__(self, feature):
         self.feat_cutline = feature
+        self.Id = feature.id()
+        self.length = feature.geometry().length()
         self.depth_wells = []
+        self.srtm_profil = profilSectionline(feature)
 
     def add_depthwells (self, layer_wells, fields):
         csvdir = os.path.dirname(layer_wells.source())
@@ -296,20 +376,26 @@ def cut_curvwell():
         cut_lines = []
         wlayer = curvwells_dialog.get_layerwells()
         wfields = curvwells_dialog.get_fieldwells()
+        srtm = curvwells_dialog.get_strm()
+
+        scale = 0.1
+
         for cfeat in  curvwells_dialog.get_featcut():
             cline = geoSectionline(cfeat)
             cline.add_depthwells(wlayer, wfields)
+            cline.srtm_profil.add_srtm(srtm)
             cut_lines.append(cline)
 
-        g,a = cut_lines[0].depth_wells[0].depth_asline()
-        feature = [tuple([g,a])]
-        maplayer(feature, "sLine3d_obj", attr, "LineString")
-
-        features = cut_lines[0].depth_wells[0].depth_asPointXY()
-        maplayer(features,"sPointXY_obj", attr, "Point")
-
-        features = cut_lines[0].depth_wells[0].depth_asPoint()
-        maplayer(features,"sPoint3dY_obj", attr, "Point")
+        for cut in cut_lines:
+            g = cut.srtm_profil.get_srtm_geom(scale)
+            a = [f"{cut.Id}", cut.length]
+            feat = [(g,a)]
+            maplayer(feat, f"cut_line-{cut.Id}", attr, "LineString")
+            feature = []
+            for well in cut.depth_wells:
+                g,a = well.get_sectionLine(scale)
+                feature.append((g,a))
+            maplayer(feature, "wells_line", attr, "LineString")
 
         #msgBox.setWindowTitle("Сообщение.")
         #msgBox.setText(str(cut_lines[0].depth_wells[0].dist_begin))
@@ -322,4 +408,4 @@ def cut_curvwell():
         #self.msgBox.setDetailedText("")
         #msgBox.exec()
 
-        del curvwells_dialog
+    del curvwells_dialog

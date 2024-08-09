@@ -29,7 +29,7 @@ from qgis.PyQt.QtWidgets import QAction, QFileDialog
 from .resources import *
 # Import the code for the dialog
 from .outcrop_profile import OutcropProfile
-from .wells_matrix import WellsMatrix
+from .wells_matrix import *
 from .csv_shape import csvShape
 from .zso_zone import zsoZone
 #from .curve_wells import CurveWells
@@ -240,12 +240,13 @@ class SaveAttributes:
         веб- или .csv файла
     """
     def matrix(self):
-        if self.first_start == True:
-            self.first_start = False
-
-        w_matrx = WellsMatrix()
-        w_matrx.run()
-        del w_matrx
+        lvl, txt = dist_well_table()
+        self.iface.messageBar().pushMessage(
+                                    "Завершено",
+                                    f"{txt}",
+                                    level=lvl,
+                                    duration=5
+                                   )
 
     def pointcsv(self):
         csv_shape = csvShape()

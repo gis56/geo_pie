@@ -6,130 +6,202 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>300</width>
-    <height>420</height>
+    <width>309</width>
+    <height>339</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Кривые скважины</string>
   </property>
-  <widget class="QWidget" name="layoutWidget">
+  <widget class="QTabWidget" name="cut_tabWidget">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>278</width>
-     <height>392</height>
+     <width>287</width>
+     <height>281</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="QLabel" name="label_layer">
-      <property name="text">
-       <string>Выберите слой скважин</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsMapLayerComboBox" name="mLayer"/>
-    </item>
-    <item>
-     <widget class="QCheckBox" name="checkBox_Features">
-      <property name="text">
-       <string>Только выбранные объекты</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <spacer name="horizontalSpacer_3">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_well">
-      <property name="text">
-       <string>Название скважины</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsFieldComboBox" name="mField_well"/>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_file">
-      <property name="text">
-       <string>Таблица данных CSV о кривизне скважины</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsFieldComboBox" name="mField_file"/>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_alt">
-      <property name="text">
-       <string>Абсолютная высота устья</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsFieldComboBox" name="mField_alt"/>
-    </item>
-    <item>
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_cut">
-      <property name="text">
-       <string>Выберите слой с лиией разреза</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsMapLayerComboBox" name="mLayer_cut"/>
-    </item>
-    <item>
-     <spacer name="horizontalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QDialogButtonBox" name="buttonBox">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="standardButtons">
-       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-      </property>
-     </widget>
-    </item>
-   </layout>
+   <property name="currentIndex">
+    <number>0</number>
+   </property>
+   <widget class="QWidget" name="relief_tab">
+    <attribute name="title">
+     <string>Рельеф</string>
+    </attribute>
+    <widget class="QgsMapLayerComboBox" name="mLayer_srtm">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>76</y>
+       <width>261</width>
+       <height>23</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_strm">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>56</y>
+       <width>69</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Слой SRTM</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_cut">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>9</y>
+       <width>197</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Выберите слой с лиией разреза</string>
+     </property>
+    </widget>
+    <widget class="QgsMapLayerComboBox" name="mLayer_cut">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>29</y>
+       <width>261</width>
+       <height>23</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="wells_tab">
+    <attribute name="title">
+     <string>Скважины</string>
+    </attribute>
+    <widget class="QLabel" name="label_layer">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>9</y>
+       <width>150</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Выберите слой скважин</string>
+     </property>
+    </widget>
+    <widget class="QgsMapLayerComboBox" name="mLayer">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>29</y>
+       <width>265</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="checkBox_Features">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>55</y>
+       <width>199</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Только выбранные объекты</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_well">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>105</y>
+       <width>124</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Название скважины</string>
+     </property>
+    </widget>
+    <widget class="QgsFieldComboBox" name="mField_well">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>125</y>
+       <width>265</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_file">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>151</y>
+       <width>265</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Таблица данных CSV о кривизне скважины</string>
+     </property>
+    </widget>
+    <widget class="QgsFieldComboBox" name="mField_file">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>171</y>
+       <width>265</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_alt">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>197</y>
+       <width>158</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Абсолютная высота устья</string>
+     </property>
+    </widget>
+    <widget class="QgsFieldComboBox" name="mField_alt">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>217</y>
+       <width>265</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QDialogButtonBox" name="buttonBox">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>300</y>
+     <width>276</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
   </widget>
  </widget>
  <customwidgets>

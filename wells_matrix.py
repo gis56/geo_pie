@@ -1,133 +1,34 @@
 import os
 
-from qgis.PyQt import uic
-from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QAction, QFileDialog
 from qgis.PyQt.QtCore import QVariant
 
-from qgis.core import (QgsProject,
+from qgis.core import (
                        Qgis,
-                       QgsVectorLayer,
                        QgsField,
-                       QgsGeometry,
-                       QgsFeature,
-                       QgsFieldProxyModel,
-                       QgsMapLayerProxyModel)
+                       QgsGeometry
+                     )
 
+from .pie_dial import formWellsMatrix
 from .utilib import *
 
-FORM_CLASS_1, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'ui/wells_matrix.ui'))
-
-class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
-
-    project = QgsProject.instance()
-    plugin_dir = os.path.dirname(__file__)
-    filename = ''
-    features = []
-    cssname = os.path.dirname(__file__) + '/css/style.css'
-    msgBox = QtWidgets.QMessageBox()
-
-    def __init__(self, parent=None):
-        super(WellsMatrix, self).__init__(parent)
-        self.setupUi(self)
-
-        # Реакция на выбор слоя в mLayer
-        self.mLayer.activated.connect(self.activ_mLayer)
-        self.mLayer.currentIndexChanged.connect(self.activ_mLayer)
-        self.mFile.setFilter('Таблица с разделителем CSV (*.csv);;\
-                              Web - страница  (*.htm)')
-
-        # Инициализация выбора кодировки
-        self.encode_combo.addItem('- не выбрана -')
-        self.encode_combo.insertSeparator(1)
-        self.enc = EncDec()
-        self.encode_combo.addItems(self.enc.get_codelist())
-        self.encode_combo.currentIndexChanged.connect(self.set_encode)
-
-        self.checkBox_matrix.setChecked(False)
-
-    # Выбор кодировки
-    def set_encode(self):
-        self.enc.set_enc(self.encode_combo.currentIndex())
-
-    # Описание реакции mLayer на активацию и выбор
-    def activ_mLayer(self):
-        self.mLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
-        self.mField.setFilters(QgsFieldProxyModel.String|QgsFieldProxyModel.Int)
-        self.mField.setLayer(self.mLayer.currentLayer())
-
-        self.checkBox_Features.setChecked(False)
-        # Получение выбранного слоя
-        wells_vLayer = self.mLayer.currentLayer()
-        # Проверка на наличие выборки. Если есть выбранные объекты,
-        # сделать доступным галочку
-        if wells_vLayer.selectedFeatures() :
-            self.checkBox_Features.setEnabled(True)
-        else :
-            self.checkBox_Features.setEnabled(False)
-
-
-    # Перегрузка метода диалогового окна accept для
-    # проверки заполненности всех полей формы
-    def accept (self) :
-        # На случай удаления пути в ручную
-        self.filename = self.mFile.lineEdit().text()
-        # Проверка пути к файлу и выбранного поля
-        dir_name = os.path.dirname(self.filename)
-        if os.path.isdir(dir_name) and self.mField.currentField():
-            self.exec_matrx()
-            self.done(QtWidgets.QDialog.Accepted)
-        else :
-            self.msgBox.warning(self,"Матрица скважин",
-                                "Не все поля заполнены.")
-
-    # Подготовка и запуск формы диалога
-    def run(self):
-        self.activ_mLayer()
-        self.exec_()
-
-    # Подготовка данных для записи в файлы таблиц
-    def exec_matrx (self) :
-        # Получение выбранного слоя
-        wells_vLayer = self.mLayer.currentLayer()
-        # Создание списка объектов в зависимости от состояние галочки
-        if self.checkBox_Features.isChecked() :
-            self.features = wells_vLayer.selectedFeatures()
-        else :
-            self.features=[feature for feature in wells_vLayer.getFeatures()]
-        # Получение поля с именами объектов
-        selField = self.mField.currentField()
-        # Запуск процедуры составления таблиц в зависимости от выбранного
-        # фильтра (расширения файла)
-        if  self.filename[-3:] ==  'htm' :
-            self.htm_write (selField)
-        else :
-            self.csv_write (selField)
-        # Создание временного слоя с графом в зависимости от состояние галочки
-        if  self.checkBox_matrix.isChecked():
-            self.create_graph(selField)
-
-    """
-    Запись результатов в .csv файл
-    selField - выбранное поле с названиями объектов
-    """
-    def csv_write (self, selField) :
-
-        with open(self.filename, 'w') as output_file:
+#-----------------------------------------------------------------------------
+#    Запись результатов в .csv файл
+#    wname - выбранное поле с названиями объектов
+#-----------------------------------------------------------------------------
+def csv_write (features, wname, filename, enc) :
+    try:
+        with open(filename, 'w') as output_file:
             line = 'csv'
-            for feature in self.features:
+            for feature in features:
                 # добавить кодировку
-                #line = line + ';' + str(feature[selField])
-                line = line + ';' + self.enc.get_utfstr(feature[selField])
+                line = line + ';' + enc.get_str(f"{feature[wname]}")
             line = line + '\n'
             output_file.write(line)
 
-            for i, feature in enumerate(self.features):
-                #line = str(feature[selField])
-                line = self.enc.get_utfstr(feature[selField])
+            for i, feature in enumerate(features):
+                line = enc.get_str(f"{feature[wname]}")
                 geom = feature.geometry()
-                for j, feature_out in enumerate(self.features):
+                for j, feature_out in enumerate(features):
                     if i == j :
                         line = line + ';'
                     else :
@@ -136,15 +37,23 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
                         line = line + ';' + "{:8.3f}".format(dist)
                 line = line + '\n'
                 output_file.write(line)
+            return True, f"Таблица CSV: {filename}"
+    except UnicodeError:
+        return False, "Ошибка выбора кодировки!"
+    except FileNotFoundError:
+        return False, "Файл не найден!"
+    except Exception as e:
+        return False, f"Ошибка: {e}"
 
-    """
-    Запись результатов в вебфайл html
-    selField - выбранное поле с названиями объектов
-    """
-    def htm_write (self, selField) :
-
-        with open(self.filename, 'w') as output_file, \
-             open(self.cssname,'r') as css_file:
+#-----------------------------------------------------------------------------
+#    Запись результатов в вебфайл html
+#    selField - выбранное поле с названиями объектов
+#-----------------------------------------------------------------------------
+def htm_write (features, wname, filename, enc) :
+    try:
+        cssname =  os.path.dirname(__file__) + '/css/style.css'
+        with open(filename, 'w') as output_file, \
+             open(cssname,'r') as css_file:
             line = '''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"\
             "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n
             <head>\n<meta http-equiv="Content-Type"\
@@ -158,18 +67,20 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
 
             line = '<tr><th></th>'
 
-            for feature in self.features:
+            for feature in features:
                 # добавить кодировку
-                line = line + '<th>' + self.enc.get_utfstr(feature[selField])\
-                    + '</th>'
+                line = line + '<th>' + \
+                       enc.get_str(f"{feature[wname]}")\
+                       + '</th>'
             line = line + '<tr>\n</thead>\n<tbody>\n'
             output_file.write(line)
 
-            for i, feature in enumerate(self.features):
-                line = '<tr><th>' + self.enc.get_utfstr(feature[selField]) \
-                    + '</th>'
+            for i, feature in enumerate(features):
+                line = '<tr><th>' + \
+                       enc.get_str(f"{feature[wname]}") \
+                       + '</th>'
                 geom = feature.geometry()
-                for j, feature_out in enumerate(self.features):
+                for j, feature_out in enumerate(features):
                     if i == j :
                         line = line + '<th></th>'
                     else :
@@ -180,49 +91,71 @@ class WellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
                 output_file.write(line)
             line = '</tbody>\n</table>\n</body>\n</html>'
             output_file.write(line)
+            return True, f"Таблица CSV: {filename}"
+    except UnicodeError:
+        return False, "Ошибка выбора кодировки!"
+    except FileNotFoundError:
+        return False, "Файл не найден!"
+    except Exception as e:
+        return False, f"Ошибка: {e}"
 
-    """
-    Создание графа
-    """
-    def create_graph(self, selField):
-        # Виртуальный слой графа
-        uri = "LineString?crs=epsg:{}".format(self.project.crs().postgisSrid())
-        graph_virtLayer = QgsVectorLayer(uri, "graph_line", "memory")
-        graph_virtProvider = graph_virtLayer.dataProvider()
-        graph_virtProvider.addAttributes([QgsField("dist",QVariant.Double),
-                                          QgsField("well_beg",QVariant.String),
-                                          QgsField("well_end",QVariant.String)
-                                        ])
+#-----------------------------------------------------------------------------
+#    Создание графа
+#-----------------------------------------------------------------------------
+def create_graph(features, wname, enc):
 
-        graph_fet = QgsFeature()
+    # Вычисление расстояний между точками
+    lines = []
+    i = 0
+    while i < len(features):
+        j = i+1
+        geom_beg = features[i].geometry()
+        while j < len(features):
+            geom_end = features[j].geometry()
+            dist = geom_beg.distance(geom_end)
 
-        # Вычисление расстояний между точками
-        i = 0
-        while i < len(self.features):
-            j = i+1
-            geom = self.features[i].geometry()
-            while j < len(self.features):
-                geom_out = self.features[j].geometry()
-                dist = geom.distance(geom_out)
+            geom = QgsGeometry.fromPolylineXY([
+                                                geom_beg.asPoint(),
+                                                geom_end.asPoint()
+                                              ])
+            attr = [
+                    dist,
+                    enc.get_str(f"{features[i][wname]}"),
+                    enc.get_str(f"{features[j][wname]}")
+                   ]
+            lines.append((geom, attr))
+            j += 1
+        i += 1
 
-                graph_line = QgsGeometry.fromPolylineXY([geom.asPoint(),
-                                                         geom_out.asPoint()])
-                graph_fet.setGeometry(graph_line)
-                graph_fet.setAttributes([
-                        dist,
-                        self.enc.get_utfstr(self.features[i][selField]),
-                        self.enc.get_utfstr(self.features[j][selField])
-                ])
-                graph_virtProvider.addFeature(graph_fet)
-
-                j += 1
-            i += 1
-
-        graph_virtLayer.updateFields()
-        graph_virtLayer.updateExtents()
-        del graph_virtProvider
-
-        self.project.addMapLayer(graph_virtLayer, True)
-        graph_virtLayer.loadNamedStyle(
-            self.plugin_dir + '/legstyle/graph_line.qml'
-        )
+    return lines
+#-----------------------------------------------------------------------------
+#
+#
+#-----------------------------------------------------------------------------
+def dist_well_table():
+    disttab_dialog = formWellsMatrix()
+    result = disttab_dialog.run()
+    if result:
+        features = disttab_dialog.get_featwells()
+        name_well = disttab_dialog.get_namefield()
+        filename = disttab_dialog.filename()
+        enc = disttab_dialog.enc
+        if filename[-3:] == "csv":
+            lvl, txt = csv_write(features, name_well, filename, enc)
+            if not lvl: return Qgis.Critical, txt
+        else:
+            lvl, txt = htm_write(features, name_well, filename, enc)
+            if not lvl: return Qgis.Critical, txt
+        if disttab_dialog.is_graph():
+            feats = create_graph(features, name_well, enc)
+            attr = [
+                    QgsField("dist",QVariant.Double),
+                    QgsField("well_beg",QVariant.String),
+                    QgsField("well_end",QVariant.String)
+                   ]
+            graph_vlayer = maplayer(feats, "graph", attr, "LineString")
+            graph_vlayer.loadNamedStyle(
+                  os.path.dirname(__file__) + '/legstyle/graph_line.qml')
+            txt += "\nГраф помещен  в слой graph."
+    del disttab_dialog
+    return Qgis.Info, txt
