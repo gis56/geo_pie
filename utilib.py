@@ -19,7 +19,7 @@ class EncDec():
             self.enc = self.item[0]
         else:
             self.err = 'strict'
-            self.enc = self.item[index-2]
+            self.enc = self.item[index]
 
     def set_dec (self, index):
         self.dec = self.item[index]
@@ -39,8 +39,8 @@ class EncDec():
             str_enc = string.encode(self.enc, errors=self.err).decode()
             return str_enc
 
-    def get_utf2sel(self, string):
-        str_enc = string.encode('utf-8').decode(self.enc)
+    def utftodec(self, string):
+        str_enc = string.encode('utf-8').decode(self.dec)
         return str_enc
 
 # ----------------------------------------------------------------------------

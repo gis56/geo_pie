@@ -1,13 +1,11 @@
+# -*- coding: utf-8 -*-
 import os
-
 from qgis.PyQt.QtCore import QVariant
-
 from qgis.core import (
                        Qgis,
                        QgsField,
                        QgsGeometry
-                     )
-
+                      )
 from .pie_dial import formWellsMatrix
 from .utilib import *
 
@@ -15,29 +13,31 @@ from .utilib import *
 #    Запись результатов в .csv файл
 #    wname - выбранное поле с названиями объектов
 #-----------------------------------------------------------------------------
-def csv_write (features, wname, filename, enc) :
+def csv_write (features, wname, filename, enc, lname) :
     try:
-        with open(filename, 'w') as output_file:
-            line = 'csv'
+        with open(filename, 'w', encoding=enc.dec, errors=enc.err)\
+            as output_file:
+            line = lname
             for feature in features:
                 # добавить кодировку
-                line = line + ';' + enc.get_str(f"{feature[wname]}")
-            line = line + '\n'
-            output_file.write(line)
+                line = f"{line}; {feature[wname]}"
+            line += '\n'
+            output_file.write(enc.get_str(line))
 
             for i, feature in enumerate(features):
-                line = enc.get_str(f"{feature[wname]}")
+                line = f"{feature[wname]}"
                 geom = feature.geometry()
                 for j, feature_out in enumerate(features):
                     if i == j :
-                        line = line + ';'
+                        line += ';'
                     else :
                         geom_out = feature_out.geometry()
                         dist = geom.distance(geom_out)
-                        line = line + ';' + "{:8.3f}".format(dist)
-                line = line + '\n'
-                output_file.write(line)
-            return True, f"Таблица CSV: {filename}"
+                        line += ";{:8.3f}".format(dist)
+                line += '\n'
+                output_file.write(enc.get_str(line))
+        output_file.close()
+        return True, f"Таблица CSV: {filename}"
     except UnicodeError:
         return False, "Ошибка выбора кодировки!"
     except FileNotFoundError:
@@ -47,57 +47,54 @@ def csv_write (features, wname, filename, enc) :
 
 #-----------------------------------------------------------------------------
 #    Запись результатов в вебфайл html
-#    selField - выбранное поле с названиями объектов
+#    wname - выбранное поле с названиями объектов
 #-----------------------------------------------------------------------------
-def htm_write (features, wname, filename, enc) :
+def htm_write (features, wname, filename, enc, lname) :
     try:
         cssname =  os.path.dirname(__file__) + '/css/style.css'
-        with open(filename, 'w') as output_file, \
-             open(cssname,'r') as css_file:
-            line = '''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"\
-            "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n
-            <head>\n<meta http-equiv="Content-Type"\
-            content="text/html; charset=utf-8">\n
-            <title>Матрица расстояний.</title>\n'''
+        with open(filename, 'w', encoding=enc.dec, errors=enc.err)\
+            as output_file, open(cssname,'r') as css_file:
+            line = f'''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
+"http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n\
+<meta http-equiv="Content-Type" content="text/html; charset={enc.dec}">\n\
+<title>Матрица расстояний.</title>\n'''
 
-            line = line + '<style>\n' + css_file.read() + '</style>\n'
-            line = line + '</head>\n<body>\n'
-            line = line + '<table class="table">\n<thead>\n'
-            output_file.write(line)
+            line += '<style>\n{}</style>\n'.format(css_file.read())
+            line += '</head>\n<body>\n'
+            line += '<table class="table">\n<thead>\n'
+            output_file.write(enc.get_str(line))
 
-            line = '<tr><th></th>'
+            line = f'<tr><th>{lname}</th>'
 
             for feature in features:
                 # добавить кодировку
-                line = line + '<th>' + \
-                       enc.get_str(f"{feature[wname]}")\
-                       + '</th>'
-            line = line + '<tr>\n</thead>\n<tbody>\n'
-            output_file.write(line)
+                line += f'<th>{feature[wname]}</th>'
+            line += '<tr>\n</thead>\n<tbody>\n'
+            output_file.write(enc.get_str(line))
 
             for i, feature in enumerate(features):
-                line = '<tr><th>' + \
-                       enc.get_str(f"{feature[wname]}") \
-                       + '</th>'
+                line = f'<tr><th>{feature[wname]}</th>'
                 geom = feature.geometry()
                 for j, feature_out in enumerate(features):
                     if i == j :
-                        line = line + '<th></th>'
+                        line += '<th></th>'
                     else :
                         geom_out = feature_out.geometry()
                         dist = geom.distance(geom_out)
-                        line = line + '<td>' + "{:8.3f}".format(dist) + '</td>'
-                line = line + '<tr>' + '\n'
-                output_file.write(line)
+                        line += '<td>{:8.3f}</td>'.format(dist)
+                line += '<tr>\n'
+                output_file.write(enc.get_str(line))
             line = '</tbody>\n</table>\n</body>\n</html>'
-            output_file.write(line)
-            return True, f"Таблица CSV: {filename}"
+            output_file.write(enc.get_str(line))
+            output_file.close()
+            css_file.close()
+            return True, f'Таблица HTML: {filename}'
     except UnicodeError:
-        return False, "Ошибка выбора кодировки!"
+        return False, 'Ошибка выбора кодировки!'
     except FileNotFoundError:
-        return False, "Файл не найден!"
+        return False, 'Файл не найден!'
     except Exception as e:
-        return False, f"Ошибка: {e}"
+        return False, f'Ошибка: {e}'
 
 #-----------------------------------------------------------------------------
 #    Создание графа
@@ -129,24 +126,29 @@ def create_graph(features, wname, enc):
 
     return lines
 #-----------------------------------------------------------------------------
-#
-#
+# Главная функция
+# features - объекты слоя
+# name_well - поле с именами скважин
+# filename - полное имя файла для записи талицы
+# lname - наименование слоя
+# enc - объект кодировки
 #-----------------------------------------------------------------------------
 def dist_well_table():
-    disttab_dialog = formWellsMatrix()
-    result = disttab_dialog.run()
+    dialog = formWellsMatrix()
+    result = dialog.run()
     if result:
-        features = disttab_dialog.get_featwells()
-        name_well = disttab_dialog.get_namefield()
-        filename = disttab_dialog.filename()
-        enc = disttab_dialog.enc
+        features = dialog.featwells()
+        name_well = dialog.namefield()
+        filename = dialog.filename()
+        enc = dialog.enc
+        lname = dialog.layer().name()
         if filename[-3:] == "csv":
-            lvl, txt = csv_write(features, name_well, filename, enc)
-            if not lvl: return Qgis.Critical, txt
+            lvl, txt = csv_write(features, name_well, filename, enc, lname)
+            if not lvl: return Qgis.Warning, txt, "Ошибка"
         else:
-            lvl, txt = htm_write(features, name_well, filename, enc)
-            if not lvl: return Qgis.Critical, txt
-        if disttab_dialog.is_graph():
+            lvl, txt = htm_write(features, name_well, filename, enc, lname)
+            if not lvl: return Qgis.Warning, txt, "Ошибка"
+        if dialog.is_graph():
             feats = create_graph(features, name_well, enc)
             attr = [
                     QgsField("dist",QVariant.Double),
@@ -157,5 +159,6 @@ def dist_well_table():
             graph_vlayer.loadNamedStyle(
                   os.path.dirname(__file__) + '/legstyle/graph_line.qml')
             txt += "\nГраф помещен  в слой graph."
-    del disttab_dialog
-    return Qgis.Info, txt
+    else: txt = "Отмена."
+    del dialog
+    return Qgis.Success, txt, "Завершено"

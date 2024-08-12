@@ -30,7 +30,7 @@ from .resources import *
 # Import the code for the dialog
 from .outcrop_profile import OutcropProfile
 from .wells_matrix import *
-from .csv_shape import csvShape
+from .csv_shape import *
 from .zso_zone import zsoZone
 #from .curve_wells import CurveWells
 from .curve_wells import *
@@ -240,18 +240,12 @@ class SaveAttributes:
         веб- или .csv файла
     """
     def matrix(self):
-        lvl, txt = dist_well_table()
-        self.iface.messageBar().pushMessage(
-                                    "Завершено",
-                                    f"{txt}",
-                                    level=lvl,
-                                    duration=5
-                                   )
+        lvl, txt, ttl = dist_well_table()
+        self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
 
     def pointcsv(self):
-        csv_shape = csvShape()
-        csv_shape.run()
-        del csv_shape
+        lvl, txt, ttl = csvtoshp()
+        self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
 
     """ Отрисовка зоны ЗСО
         эллипсы, квадраты, радиусы
