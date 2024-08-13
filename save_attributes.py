@@ -31,8 +31,7 @@ from .resources import *
 from .outcrop_profile import OutcropProfile
 from .wells_matrix import *
 from .csv_shape import *
-from .zso_zone import zsoZone
-#from .curve_wells import CurveWells
+from .zso_zone import *
 from .curve_wells import *
 import os.path
 
@@ -251,17 +250,14 @@ class SaveAttributes:
         эллипсы, квадраты, радиусы
     """
     def zsozone(self):
-        zso_zone = zsoZone()
-        zso_zone.run()
-        del zso_zone
+        lvl, txt, ttl = zsozone()
+        self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
 
     """ Проекция профиля изогнутой скважины на линию разреза
     """
     def  curvwells (self):
-        cut_curvwell()
-        #curve_wells = CurveWells()
-        #curve_wells.run()
-        #del curve_wells
+        lvl, txt, ttl = cut_curvwell()
+        self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
     """
         Конструкция скважин
     """

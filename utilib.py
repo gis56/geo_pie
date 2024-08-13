@@ -51,7 +51,7 @@ class EncDec():
 # layer_name -  имя слоя
 # attr_list - список атрибутов слоя
 # ----------------------------------------------------------------------------
-def maplayer (geomattr, layer_name, attr_list, layer_type):
+def maplayer (geomattr, layer_name, attr_list, layer_type, addmap=True):
 
     project = QgsProject.instance()
     uri = "{}?crs=epsg:{}".format(layer_type, project.crs().postgisSrid())
@@ -69,6 +69,17 @@ def maplayer (geomattr, layer_name, attr_list, layer_type):
     virtLayer.updateExtents()
     del virtProvider
 
-    project.addMapLayer(virtLayer, True)
+    project.addMapLayer(virtLayer, addmap)
 
     return virtLayer
+
+#-----------------------------------------------------------------------------
+# Создать группу слоев
+#
+#-----------------------------------------------------------------------------
+def creategroup (name, excl=1):
+    root = QgsProject.instance().layerTreeRoot()
+    group = root.addGroup(name)
+    #group.setIsMutuallyExclusive(excl)
+    return group
+

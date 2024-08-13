@@ -141,6 +141,7 @@ class formCSVshape(QtWidgets.QDialog, FORM_CLASS_2):
         self.encode_comboBox.insertSeparator(1)
         self.enc = EncDec()
         self.encode_comboBox.addItems(self.enc.item)
+        self.encode_comboBox.setCurrentIndex(0)
         self.encode_comboBox.currentIndexChanged.connect(self.set_encode)
 
         self.field_check.clicked.connect(self.change_head)
@@ -227,3 +228,180 @@ class formCSVshape(QtWidgets.QDialog, FORM_CLASS_2):
 #-----------------------------------------------------------------------------
 #   formCSVshape
 #-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Форма ввода данных для построения изогнутых скважин.
+# В будущем должна разрастись до полноценного разреза
+#-----------------------------------------------------------------------------
+FORM_CLASS_3, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui/curve_wells.ui'))
+
+class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
+    msgBox = QtWidgets.QMessageBox()
+
+    def __init__(self, parent=None):
+        super(formCurveWells, self).__init__(parent)
+        self.setupUi(self)
+
+        # Настройка mLayer (скважины)
+        self.mLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.mLayer.activated.connect(self.activ_mLayer)
+        self.mLayer.currentIndexChanged.connect(self.activ_mLayer)
+
+        # Настройка mLayer_cut (разрез)
+        self.mLayer_cut.setFilters(QgsMapLayerProxyModel.LineLayer)
+
+        # Настройка mLayer_srtm
+        self.mLayer_srtm.setFilters(QgsMapLayerProxyModel.RasterLayer)
+
+        # Настройка типов полей атрибутов
+        self.mField_well.setFilters(QgsFieldProxyModel.String)
+        self.mField_file.setFilters(QgsFieldProxyModel.String)
+        self.mField_alt.setFilters(QgsFieldProxyModel.Double)
+
+        # Инициализация чекбокса выбранных скважин
+        #self.checkBox_Features.setChecked(False)
+
+    # Действия на активацию и выбор слоя скважин в mLayer
+    def activ_mLayer(self):
+        # Инициализация полей атрибутов
+        self.mField_well.setLayer(self.mLayer.currentLayer())
+        self.mField_file.setLayer(self.mLayer.currentLayer())
+        self.mField_alt.setLayer(self.mLayer.currentLayer())
+
+    # Подготовка и запуск формы диалога
+    def run(self):
+        self.activ_mLayer()
+        self.exec_()
+        return self.result()
+
+    # Перегрузка метода диалогового окна accept для
+    # проверки заполненности всех полей формы
+    def accept (self) :
+        # Проверка пути к файлу и выбранного поля
+        if (self.mField_well.currentField() and
+            self.mField_alt.currentField() and
+            self.mField_file.currentField()):
+            self.done(QtWidgets.QDialog.Accepted)
+        else:
+            self.msgBox.warning(self,"Матрица скважин",
+                                "Не все поля заполнены.")
+    def get_layerwells (self):
+        return self.mLayer.currentLayer()
+
+    def get_layercut (self):
+        return self.mLayer_cut.currentLayer()
+
+    def get_strm (self):
+        return  self.mLayer_srtm.currentLayer().dataProvider()
+
+    def get_featwells (self):
+        return [feat for feat in self.mLayer.currentLayer().getFeatures()]
+
+    def get_selfeatwells (self):
+        return self.mLayer.currentLayer().selectedFeatures()
+
+    def get_featcut (self):
+        return [feat for feat in self.mLayer_cut.currentLayer().getFeatures()]
+
+    def get_fieldwells (self):
+        return (self.mField_well.currentField(),
+                self.mField_alt.currentField(),
+                self.mField_file.currentField()
+               )
+
+    def get_dirlayer (self):
+        return  os.path.dirname(self.mLayer.currentLayer().source())
+#-----------------------------------------------------------------------------
+#       formCurveWells
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+#  Диалог зоны ЗСО
+#  formZonezso
+#-----------------------------------------------------------------------------
+FORM_CLASS_4, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui/zone_zso.ui'))
+
+class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
+
+    checklist = []
+    msgBox = QtWidgets.QMessageBox()
+
+    def __init__(self, parent=None):
+        super(formZonezso, self).__init__(parent)
+        self.setupUi(self)
+
+        # Реакция на выбор слоя в mLayer
+        self.layer_ComboBox.currentIndexChanged.connect(self.activ_layerbox)
+        self.layer_ComboBox.setFilters(QgsMapLayerProxyModel.PointLayer)
+
+        self.select_checkBox.setChecked(False)
+
+    # Описание реакции mLayer на активацию и выбор
+    def activ_layerbox(self):
+        layer = self.layer_ComboBox.currentLayer()
+        if layer.selectedFeatures() :
+            self.select_checkBox.setEnabled(True)
+        else :
+            self.select_checkBox.setEnabled(False)
+
+    # Перегрузка метода диалогового окна accept для
+    # проверки заполненности всех полей формы
+    def accept (self) :
+        check, checklist = self.checkzone()
+        if check:
+            self.checklist = checklist
+            self.done(QtWidgets.QDialog.Accepted)
+        else:
+            self.msgBox.warning(self,
+                                "Проверка ввода данных",
+                                "Не одно поле радиусов зон не найдено!"
+                                )
+
+    # Подготовка и запуск формы диалога
+    def run(self):
+        self.exec_()
+        return self.result()
+
+    # Проверка наличия полей с радиусами
+    def checkzone (self) :
+        layer = self.layer_ComboBox.currentLayer()
+        fnm = layer.fields().names()
+        check = [False, False, False]
+        if 'r1' in fnm:
+            check[0] = True
+        else:
+            self.msgBox.warning(self,"Проверка атрибутов.",
+                                "Отсутствует поле первого пояса 'r1'.")
+        if (('r_n2' in fnm) and ('r_w2' in fnm) and
+            ('r_s2' in fnm) and ('r_o2' in fnm)):
+            check[1] = True
+        else:
+            self.msgBox.warning(self,"Проверка атрибутов.",
+                                "Отсутствует поля второго пояса 'r_2'.")
+        if (('r_n3' in fnm) and ('r_w3' in fnm) and
+            ('r_s3' in fnm) and ('r_o3' in fnm)):
+            check[2] = True
+        else:
+            self.msgBox.warning(self,"Проверка атрибутов.",
+                                "Отсутствует поля третьего пояса 'r_3'.")
+        if True in check:
+            return True, check
+        else:
+            return False, check
+
+    def getfeatures(self):
+        layer = self.layer_ComboBox.currentLayer()
+        if self.select_checkBox.isChecked() :
+            features = layer.selectedFeatures()
+        else :
+            features=[feature for feature in layer.getFeatures()]
+        return features
+
+    def getazimut(self):
+        return self.azimut_spinBox.value()-90
+#-----------------------------------------------------------------------------
+#       formZonezso
+#-----------------------------------------------------------------------------
+

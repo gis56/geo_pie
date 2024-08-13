@@ -19,87 +19,9 @@ from qgis.core import (QgsProject,
                        QgsPointXY,
                        QgsPoint,
                        QgsFeatureRequest)
+from .pie_dial import formCurveWells
 
-FORM_CLASS_1, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'ui/curve_wells.ui'))
-
-class formCurveWells(QtWidgets.QDialog, FORM_CLASS_1):
-    msgBox = QtWidgets.QMessageBox()
-
-    def __init__(self, parent=None):
-        super(formCurveWells, self).__init__(parent)
-        self.setupUi(self)
-
-        # Настройка mLayer (скважины)
-        self.mLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
-        self.mLayer.activated.connect(self.activ_mLayer)
-        self.mLayer.currentIndexChanged.connect(self.activ_mLayer)
-
-        # Настройка mLayer_cut (разрез)
-        self.mLayer_cut.setFilters(QgsMapLayerProxyModel.LineLayer)
-
-        # Настройка mLayer_srtm
-        self.mLayer_srtm.setFilters(QgsMapLayerProxyModel.RasterLayer)
-
-        # Настройка типов полей атрибутов
-        self.mField_well.setFilters(QgsFieldProxyModel.String)
-        self.mField_file.setFilters(QgsFieldProxyModel.String)
-        self.mField_alt.setFilters(QgsFieldProxyModel.Double)
-
-        # Инициализация чекбокса выбранных скважин
-        #self.checkBox_Features.setChecked(False)
-
-    # Действия на активацию и выбор слоя скважин в mLayer
-    def activ_mLayer(self):
-        # Инициализация полей атрибутов
-        self.mField_well.setLayer(self.mLayer.currentLayer())
-        self.mField_file.setLayer(self.mLayer.currentLayer())
-        self.mField_alt.setLayer(self.mLayer.currentLayer())
-
-    # Подготовка и запуск формы диалога
-    def run(self):
-        self.activ_mLayer()
-        self.exec_()
-        return self.result()
-
-    # Перегрузка метода диалогового окна accept для
-    # проверки заполненности всех полей формы
-    def accept (self) :
-        # Проверка пути к файлу и выбранного поля
-        if (self.mField_well.currentField() and
-            self.mField_alt.currentField() and
-            self.mField_file.currentField()):
-            self.done(QtWidgets.QDialog.Accepted)
-        else:
-            self.msgBox.warning(self,"Матрица скважин",
-                                "Не все поля заполнены.")
-    def get_layerwells (self):
-        return self.mLayer.currentLayer()
-
-    def get_layercut (self):
-        return self.mLayer_cut.currentLayer()
-
-    def get_strm (self):
-        return  self.mLayer_srtm.currentLayer().dataProvider()
-
-    def get_featwells (self):
-        return [feat for feat in self.mLayer.currentLayer().getFeatures()]
-
-    def get_selfeatwells (self):
-        return self.mLayer.currentLayer().selectedFeatures()
-
-    def get_featcut (self):
-        return [feat for feat in self.mLayer_cut.currentLayer().getFeatures()]
-
-    def get_fieldwells (self):
-        return (self.mField_well.currentField(),
-                self.mField_alt.currentField(),
-                self.mField_file.currentField()
-               )
-
-    def get_dirlayer (self):
-        return  os.path.dirname(self.mLayer.currentLayer().source())
-
+from .utilib import *
 #-----------------------------------------------------------------------------
 # Класс описывающий скважину на разрезе. Название скважины, расстояние от
 # начала линии разреза, геометрию отрезка разреза до и после скважины, точки
@@ -334,37 +256,7 @@ class geoSectionline ():
 #    geoSectionline
 #-----------------------------------------------------------------------------
 
-# -----------------------------------------------------------
-# Создание слоя (пока точек, потом сделать универсальным)
-# и дабавление его на карту (потом сделать возвращение виртуального слоя,
-# а добавление и компановка слоев будет в другом месте.
-# features - объекты слоя
-# layer_name -  имя слоя
-# attr_list - список атрибутов слоя
-# ------------------------------------------------------------
-def maplayer (features, layer_name, attr_list, layer_type):
-
-    project = QgsProject.instance()
-    uri = "{}?crs=epsg:{}".format(layer_type, project.crs().postgisSrid())
-    virtLayer = QgsVectorLayer(uri, layer_name, "memory")
-    virtProvider = virtLayer.dataProvider()
-    virtProvider.addAttributes(attr_list)
-
-    vlayer_fet = QgsFeature()
-    for fet in features:
-        geom, attr = fet
-        vlayer_fet.setGeometry(geom)
-        vlayer_fet.setAttributes(attr)
-        virtProvider.addFeature(vlayer_fet)
-    virtLayer.updateFields()
-    virtLayer.updateExtents()
-    del virtProvider
-
-    project.addMapLayer(virtLayer, True)
-
 def cut_curvwell():
-
-    msgBox = QMessageBox()
 
     curvwells_dialog = formCurveWells()
     result = curvwells_dialog.run()
@@ -396,16 +288,7 @@ def cut_curvwell():
                 g,a = well.get_sectionLine(scale)
                 feature.append((g,a))
             maplayer(feature, "wells_line", attr, "LineString")
-
-        #msgBox.setWindowTitle("Сообщение.")
-        #msgBox.setText(str(cut_lines[0].depth_wells[0].dist_begin))
-        #self.msgBox.setText(f"\
-        #                    id скважины - {well_id} \n \
-        #                    индекс - {icur} \n \
-        #                    до - {iprv} \n \
-        #                    после - {inxt})")
-        #self.msgBox.setInformativeText("")
-        #self.msgBox.setDetailedText("")
-        #msgBox.exec()
-
+        txt = "Результат в cut_line."
+    else: txt = "Отмена."
     del curvwells_dialog
+    return Qgis.Success, txt, "Завершено"

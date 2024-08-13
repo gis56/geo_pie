@@ -31,8 +31,9 @@ def csvtoshp():
         boo, feat = linefeat(line, xf, yf)
         if boo:
             feats.append(feat)
+            return True, "ok!"
         else:
-            return  Qgis.Warning, feat, "Ошибка"
+            return  False, feat
 
     dialog = formCSVshape()
     result = dialog.run()
@@ -50,14 +51,18 @@ def csvtoshp():
             feats = []
             if not head:
                 fields = [f'field_{i}' for i, field in enumerate(fields)]
-                addfeat()
+                err, txt = addfeat()
+                if not err:
+                    return Qgis.Warning, txt, "Ошибка"
             attr = []
             for field in fields:
                 attr.append(QgsField(field.strip(), QVariant.String))
 
             # Формирование геометрии точек
             for line in csvfile:
-                addfeat()
+                err, txt = addfeat()
+                if not err:
+                    return Qgis.Warning, txt, "Ошибка"
         csvfile.close()
 
         vlayer = maplayer(feats, "point_csv", attr, "Point")
