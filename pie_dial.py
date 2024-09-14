@@ -68,10 +68,13 @@ class formWellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
 
         self.checkBox_Features.setChecked(False)
         # Получение выбранного слоя
+        # Перед тем как активировать галочку с отмеченными объектами
+        # необходимо убедиться в наличии слоя
+        wells_vLayer = False
         wells_vLayer = self.mLayer.currentLayer()
         # Проверка на наличие выборки. Если есть выбранные объекты,
         # сделать доступным галочку
-        if wells_vLayer.selectedFeatures() :
+        if wells_vLayer and wells_vLayer.selectedFeatures() :
             self.checkBox_Features.setEnabled(True)
         else :
             self.checkBox_Features.setEnabled(False)
@@ -259,6 +262,9 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_file.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
 
+        # Настройка масштабов
+        self.map_mScale.setScale(100000)
+        self.cut_mScale.setScale(25000)
         # Инициализация чекбокса выбранных скважин
         #self.checkBox_Features.setChecked(False)
 
@@ -312,6 +318,13 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
 
     def get_dirlayer (self):
         return  os.path.dirname(self.mLayer.currentLayer().source())
+
+    def getscale(self):
+        return self.map_mScale.scale() / self.cut_mScale.scale()
+
+    def get_mapcut_scale (self):
+        return self.map_mScale.scale(), self.cut_mScale.scale()
+
 #-----------------------------------------------------------------------------
 #       formCurveWells
 #-----------------------------------------------------------------------------
@@ -340,8 +353,9 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
 
     # Описание реакции mLayer на активацию и выбор
     def activ_layerbox(self):
+        layer = False
         layer = self.layer_ComboBox.currentLayer()
-        if layer.selectedFeatures() :
+        if layer and layer.selectedFeatures() :
             self.select_checkBox.setEnabled(True)
         else :
             self.select_checkBox.setEnabled(False)

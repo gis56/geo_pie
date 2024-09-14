@@ -18,7 +18,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>287</width>
+     <width>291</width>
      <height>281</height>
     </rect>
    </property>
@@ -29,52 +29,71 @@
     <attribute name="title">
      <string>Рельеф</string>
     </attribute>
-    <widget class="QgsMapLayerComboBox" name="mLayer_srtm">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>76</y>
-       <width>261</width>
-       <height>23</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_strm">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>56</y>
-       <width>69</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Слой SRTM</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_cut">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>9</y>
-       <width>197</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Выберите слой с лиией разреза</string>
-     </property>
-    </widget>
-    <widget class="QgsMapLayerComboBox" name="mLayer_cut">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>29</y>
-       <width>261</width>
-       <height>23</height>
-      </rect>
-     </property>
-    </widget>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QLabel" name="label_cut">
+       <property name="text">
+        <string>Выберите слой с лиией разреза</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QgsMapLayerComboBox" name="mLayer_cut"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_strm">
+       <property name="text">
+        <string>Слой SRTM</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QgsMapLayerComboBox" name="mLayer_srtm"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_scale">
+       <property name="text">
+        <string>Масштаб</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="label_mapscale">
+         <property name="text">
+          <string>карты</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsScaleWidget" name="map_mScale">
+         <property name="showCurrentScaleButton">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLabel" name="label_cutscale">
+         <property name="text">
+          <string>разреза</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsScaleWidget" name="cut_mScale">
+         <property name="showCurrentScaleButton">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </widget>
    <widget class="QWidget" name="wells_tab">
     <attribute name="title">
@@ -214,6 +233,11 @@
    <class>QgsMapLayerComboBox</class>
    <extends>QComboBox</extends>
    <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsScaleWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsscalewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

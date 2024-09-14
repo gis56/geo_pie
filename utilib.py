@@ -77,9 +77,9 @@ def maplayer (geomattr, layer_name, attr_list, layer_type, addmap=True):
 # Создать группу слоев
 #
 #-----------------------------------------------------------------------------
-def creategroup (name, excl=1):
+def creategroup (name, excl=False):
     root = QgsProject.instance().layerTreeRoot()
     group = root.addGroup(name)
-    #group.setIsMutuallyExclusive(excl)
+    group.setIsMutuallyExclusive(excl)
     return group
 
