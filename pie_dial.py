@@ -256,11 +256,20 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
 
         # Настройка mLayer_srtm
         self.mLayer_srtm.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mLayer_srtm.setAdditionalItems([" -не выбрано- "])
+
+        # Настройка поелй с изолиниями mLayer_izln
+        self.mLayer_izln.setFilters(QgsMapLayerProxyModel.LineLayer)
+        self.mLayer_izln.activated.connect(self.activ_mLayer_izln)
+        self.mLayer_izln.currentIndexChanged.connect(self.activ_mLayer_izln)
 
         # Настройка типов полей атрибутов
         self.mField_well.setFilters(QgsFieldProxyModel.String)
         self.mField_file.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
+        self.mField_elev.setFilters(QgsFieldProxyModel.Int |
+                                    QgsFieldProxyModel.Double |
+                                    QgsFieldProxyModel.LongLong)
 
         # Настройка масштабов
         self.map_mScale.setScale(100000)
@@ -275,9 +284,14 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_file.setLayer(self.mLayer.currentLayer())
         self.mField_alt.setLayer(self.mLayer.currentLayer())
 
+    # Действия на активацию и выбор слоя изолиний
+    def activ_mLayer_izln(self):
+        self.mField_elev.setLayer(self.mLayer_izln.currentLayer())
+
     # Подготовка и запуск формы диалога
     def run(self):
         self.activ_mLayer()
+        self.activ_mLayer_izln()
         self.exec_()
         return self.result()
 
@@ -299,7 +313,9 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         return self.mLayer_cut.currentLayer()
 
     def get_strm (self):
-        return  self.mLayer_srtm.currentLayer().dataProvider()
+        if self.mLayer_srtm.currentLayer():
+            return  self.mLayer_srtm.currentLayer().dataProvider()
+        else: return False
 
     def get_featwells (self):
         return [feat for feat in self.mLayer.currentLayer().getFeatures()]
@@ -324,6 +340,12 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
 
     def get_mapcut_scale (self):
         return self.map_mScale.scale(), self.cut_mScale.scale()
+
+    def get_izline (self):
+        return (
+                self.mLayer_izln.currentLayer(),
+                self.mField_elev.currentField()
+               )
 
 #-----------------------------------------------------------------------------
 #       formCurveWells

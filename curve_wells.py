@@ -149,6 +149,17 @@ class profilSectionline ():
         # Расчитать шаг из длины линии разреза
         self.step_point = self.geom_cutline.length() // 100
         self.section_points = []
+        self.sectpnt_izln = []
+        self.alt_extrem = []
+
+    def add_izln(self, verts):
+        for vert in verts:
+            x, y = vert
+            self.sectpnt_izln.append((float(x), float(y)))
+        self.alt_extrem.extend([
+                        min(self.sectpnt_izln, key=lambda y: y[1])[1],
+                        max(self.sectpnt_izln, key=lambda y: y[1])[1]
+                        ])
 
     def add_srtm(self, srtm):
         # Уплотнение линии точками
@@ -169,7 +180,10 @@ class profilSectionline ():
             sec_x = densify_line.distanceToVertex(i)
             # Накопление списка точек профиля
             self.section_points.append((sec_x, sec_y))
-        self.alt_extrem = (min(alt_list), max(alt_list))
+        self.alt_extrem.extend([min(alt_list), max(alt_list)])
+
+    def get_extreme (self):
+        return min(self.alt_extrem), max(self.alt_extrem)
 
     def get_srtm_geom (self, scale=1):
         points = []
@@ -186,6 +200,17 @@ class profilSectionline ():
         simplify_profile_line = smooth_profile_line.simplify(0.5)
 
         return simplify_profile_line
+
+    def get_izln_geom (self, scale=1):
+        x,y = self.sectpnt_izln[0]
+        points = [QgsPointXY(0, y*scale)]
+        for point in self.sectpnt_izln:
+            x,y = point
+            points.append(QgsPointXY(x,y*scale))
+        points.append(QgsPointXY(self.geom_cutline.length(), y*scale))
+
+        return  QgsGeometry.fromPolylineXY(points)
+
 
 #-----------------------------------------------------------------------------
 #     profilSectionline
@@ -251,13 +276,6 @@ class rulerSection ():
             pnt_feats.append((QgsGeometry.fromPointXY(point),
                               ['right', i]))
             i += self.cm_step
-        """
-            point = QgsPointXY(x, y)
-
-            points.append((QgsGeometry.fromPointXY(point),
-                           [self.name_well, z])
-
-        """
 
         return ln_feats, pnt_feats
 #-----------------------------------------------------------------------------
@@ -276,18 +294,99 @@ class geoSectionline ():
         self.length = feature.geometry().length()
         self.depth_wells = []
         # создается объект линии разреза
-        self.profiline = profilSectionline(feature)
+        #self.profiline = profilSectionline(feature)
         # список глубин всех вынесенных на разрез скважин
         # для поиска наиболее глубокой и расчета минимального значения линейки
         self.well_depths = []
 
+    #------------------------------------------------------------------------
+    # точки пересечения линий с линиями
+    # на входе слой с линиями и фьючерс объекта линии разреза
+    # на выходе геометрия и атрибуты точек пересечения
+    # геометрия: X=расстояние от начала разреза, Y=либо атрибуту поля с
+    # высотами в случае с изолиниями, либо точке пересечения вертикали
+    # с линией профиля
+    # ------------------------------------------------------------------------
+    def sect_cut_ln (self, lines_layer, field):
+        cutpoints = []
+        x_beg = 0
+        sectvert_iter = self.feat_cutline.geometry().vertices()
+        sectvert_beg = next(sectvert_iter)
+        for sectvert_end in sectvert_iter:
+            interval_geom = QgsGeometry.fromPolyline([sectvert_beg,
+                                                      sectvert_end])
+            # определение области отрезка и запрос на пересечение
+            rectbox = interval_geom.boundingBox()
+            request = QgsFeatureRequest().setFilterRect(rectbox).setFlags(
+                                             QgsFeatureRequest.ExactIntersect)
+            # Перебор изолиний пересакающих область текущего отрезка
+            for featline in lines_layer.getFeatures(request):
+                featline_geom = featline.geometry()
+                intersect_geom = featline_geom.intersection(interval_geom)
+
+                if not intersect_geom.isEmpty():
+                    for  part_geom in intersect_geom.asGeometryCollection() :
+                        dist = part_geom.distance(
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
+                        cutpoints.append((x_beg+dist, featline[field]))
+                """
+                if intersect_geom.isMultipart():
+                    if not intersect_geom.isEmpty():
+                        dist = intersect_geom.distance(
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
+                        cutpoints.append((x_beg+dist, featline[field]))
+                else :
+                    for  part_geom in intersect_geom.asGeometryCollection() :
+                        dist = part_geom.distance(
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
+                        cutpoints.append((x_beg+dist, featline[field]))
+                """
+            # Наращивание расстояние от начала линии разреза
+            x_beg += interval_geom.length()
+            sectvert_beg = sectvert_end
+
+        return  sorted(cutpoints, key=lambda x: x[0])
+
+    #-------------------------------------------------------------------------
+    #   sect_cut_ln
+    #-------------------------------------------------------------------------
+    """
+    # добавление профиля построенного по изолиниям
+    def add_izline(self, izln):
+        verts = self.sect_cut_ln(*izln)
+        for vert in verts:
+            x, y = vert
+            self.profiline.sectpnt_izln.append((float(x), float(y)))
+    """
+    # добавление профиля построенного по изолиниям
+    def add_profile(self, izln, srtm):
+
+        self.profiline = profilSectionline(self.feat_cutline)
+
+        verts = self.sect_cut_ln(*izln)
+        self.profiline.add_izln(verts)
+        """
+        for vert in verts:
+            x, y = vert
+            self.profiline.sectpnt_izln.append((float(x), float(y)))
+        min_y = min(self.profiline.sectpnt_izln, key=lambda y: y[1])
+        max_y = max(self.profiline.sectpnt_izln, key=lambda y: y[1])
+        """
+        if srtm: self.profiline.add_srtm(srtm)
+
+    # добавление линейки
     def add_ruler (self, cutscale):
-        min_alt, max_alt = self.profiline.alt_extrem
+        min_alt, max_alt = self.profiline.get_extreme()
+        #min_alt, max_alt = self.profiline.alt_extrem
         min_depth = min(self.well_depths)
         if min_alt > min_depth:
             min_alt = min_depth
         self.ruler = rulerSection(self.length, min_alt, max_alt, cutscale)
 
+    # добавление скважин
     def add_depthwells (self, layer_wells, fields):
 
         def addwell():
@@ -362,6 +461,7 @@ def cut_curvwell():
         wlayer = dialog.get_layerwells()
         wfields = dialog.get_fieldwells()
         srtm = dialog.get_strm()
+        izln = dialog.get_izline()
         #scale = dialog.getscale()
         mapscale, cutscale = dialog.get_mapcut_scale()
         scale = mapscale / cutscale
@@ -372,7 +472,10 @@ def cut_curvwell():
             # создание объекта разреза
             cline = geoSectionline(cfeat)
             errlist += cline.add_depthwells(wlayer, wfields)
-            cline.profiline.add_srtm(srtm)
+            # создание профилей разреза
+            cline.add_profile(izln, srtm)
+            #cline.profiline.add_srtm(srtm)
+            #cline.add_izline(izln)
             # линейки
             cline.add_ruler(cutscale)
             #errlist += cline.ruler.get_ruler()
@@ -389,12 +492,22 @@ def cut_curvwell():
         #errtxt = ""
         maingroup = creategroup("Разрезы", True)
         for cut in cut_lines:
+            # профиль srtm
             geom = cut.profiline.get_srtm_geom(scale)
             attr = [f"{cut.Id}", cut.length]
             feat = [(geom, attr)]
 
             group = maingroup.addGroup(f"Разрез {cut.Id}")
-            layer = maplayer(feat, f"cut_line-{cut.Id}",
+            layer = maplayer(feat, f"srtm_profil-{cut.Id}",
+                             fields_cut, "LineString", False)
+            group.addLayer(layer)
+
+            # профиль изолиний
+            geom = cut.profiline.get_izln_geom(scale)
+            attr = [f"{cut.Id}", cut.length]
+            feat = [(geom, attr)]
+
+            layer = maplayer(feat, f"izline_profil-{cut.Id}",
                              fields_cut, "LineString", False)
             group.addLayer(layer)
 

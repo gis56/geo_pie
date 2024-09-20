@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>309</width>
-    <height>339</height>
+    <height>423</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,9 +17,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>10</y>
+     <y>60</y>
      <width>291</width>
-     <height>281</height>
+     <height>311</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -31,14 +31,28 @@
     </attribute>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="label_cut">
+      <widget class="QLabel" name="label_izln">
        <property name="text">
-        <string>Выберите слой с лиией разреза</string>
+        <string>Слой с изолиниями</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QgsMapLayerComboBox" name="mLayer_cut"/>
+      <widget class="QgsMapLayerComboBox" name="mLayer_izln"/>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="label_elev">
+         <property name="text">
+          <string>Поле с высотами</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsFieldComboBox" name="mField_elev"/>
+       </item>
+      </layout>
      </item>
      <item>
       <widget class="QLabel" name="label_strm">
@@ -140,7 +154,7 @@
       <rect>
        <x>9</x>
        <y>105</y>
-       <width>124</width>
+       <width>261</width>
        <height>16</height>
       </rect>
      </property>
@@ -186,7 +200,7 @@
       <rect>
        <x>9</x>
        <y>197</y>
-       <width>158</width>
+       <width>261</width>
        <height>16</height>
       </rect>
      </property>
@@ -209,8 +223,8 @@
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>300</y>
+     <x>20</x>
+     <y>390</y>
      <width>276</width>
      <height>24</height>
     </rect>
@@ -221,6 +235,28 @@
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
+  </widget>
+  <widget class="QWidget" name="">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>4</y>
+     <width>291</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QLabel" name="label_cut">
+      <property name="text">
+       <string>Выберите слой с лиией разреза</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QgsMapLayerComboBox" name="mLayer_cut"/>
+    </item>
+   </layout>
   </widget>
  </widget>
  <customwidgets>
