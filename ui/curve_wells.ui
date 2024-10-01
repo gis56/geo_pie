@@ -131,7 +131,7 @@
       <rect>
        <x>9</x>
        <y>29</y>
-       <width>265</width>
+       <width>271</width>
        <height>22</height>
       </rect>
      </property>
@@ -149,74 +149,60 @@
       <string>Только выбранные объекты</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_well">
+    <widget class="QWidget" name="">
      <property name="geometry">
       <rect>
-       <x>9</x>
-       <y>105</y>
-       <width>261</width>
-       <height>16</height>
+       <x>10</x>
+       <y>90</y>
+       <width>271</width>
+       <height>178</height>
       </rect>
      </property>
-     <property name="text">
-      <string>Название скважины</string>
-     </property>
-    </widget>
-    <widget class="QgsFieldComboBox" name="mField_well">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>125</y>
-       <width>265</width>
-       <height>22</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_file">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>151</y>
-       <width>265</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Таблица данных CSV о кривизне скважины</string>
-     </property>
-    </widget>
-    <widget class="QgsFieldComboBox" name="mField_file">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>171</y>
-       <width>265</width>
-       <height>22</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_alt">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>197</y>
-       <width>261</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Абсолютная высота устья</string>
-     </property>
-    </widget>
-    <widget class="QgsFieldComboBox" name="mField_alt">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>217</y>
-       <width>265</width>
-       <height>22</height>
-      </rect>
-     </property>
+     <layout class="QFormLayout" name="formLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_well">
+        <property name="text">
+         <string>Название скважины
+</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QgsFieldComboBox" name="mField_well"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_file">
+        <property name="text">
+         <string>Таблица данных CSV
+о кривизне скважины</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QgsFieldComboBox" name="mField_file"/>
+      </item>
+      <item row="2" column="1">
+       <widget class="QgsFieldComboBox" name="mField_alt"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_alt">
+        <property name="text">
+         <string>Абсолютная
+высота устья</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QgsFieldComboBox" name="mField_filters"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_filters">
+        <property name="text">
+         <string>Фильтры</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>
@@ -236,7 +222,7 @@
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>10</x>

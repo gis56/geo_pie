@@ -266,6 +266,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         # Настройка типов полей атрибутов
         self.mField_well.setFilters(QgsFieldProxyModel.String)
         self.mField_file.setFilters(QgsFieldProxyModel.String)
+        self.mField_filters.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
         self.mField_elev.setFilters(QgsFieldProxyModel.Int |
                                     QgsFieldProxyModel.Double |
@@ -283,6 +284,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_well.setLayer(self.mLayer.currentLayer())
         self.mField_file.setLayer(self.mLayer.currentLayer())
         self.mField_alt.setLayer(self.mLayer.currentLayer())
+        self.mField_filters.setLayer(self.mLayer.currentLayer())
 
     # Действия на активацию и выбор слоя изолиний
     def activ_mLayer_izln(self):
@@ -329,7 +331,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
     def get_fieldwells (self):
         return (self.mField_well.currentField(),
                 self.mField_alt.currentField(),
-                self.mField_file.currentField()
+                self.mField_file.currentField(),
+                self.mField_filters.currentField()
                )
 
     def get_dirlayer (self):
