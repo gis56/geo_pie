@@ -25,6 +25,42 @@ from qgis.core import (
 from .pie_dial import formCurveWells
 
 from .utilib import *
+
+#-----------------------------------------------------------------------------
+# Класс который будет родительским классом для классов описывающих
+# объекты на разрезе. В нем будут общие методы для этих классов
+# например: процедура пересечения линий
+# ----------------------------------------------------------------------------
+class objCutline ():
+    def cut_intersect_ln (self, geom_cutline, lines_layer, field):
+        cutpoints = []
+        x_beg = 0
+        sectvert_iter = geom_cutline.vertices()
+        sectvert_beg = next(sectvert_iter)
+        for sectvert_end in sectvert_iter:
+            interval_geom = QgsGeometry.fromPolyline([sectvert_beg,
+                                                      sectvert_end])
+            # определение области отрезка и запрос на пересечение
+            rectbox = interval_geom.boundingBox()
+            request = QgsFeatureRequest().setFilterRect(rectbox).setFlags(
+                                             QgsFeatureRequest.ExactIntersect)
+            # Перебор изолиний пересакающих область текущего отрезка
+            for featline in lines_layer.getFeatures(request):
+                featline_geom = featline.geometry()
+                intersect_geom = featline_geom.intersection(interval_geom)
+
+                if not intersect_geom.isEmpty():
+                    for  part_geom in intersect_geom.asGeometryCollection() :
+                        dist = part_geom.distance(
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
+                        cutpoints.append((x_beg+dist, featline[field]))
+            # Наращивание расстояние от начала линии разреза
+            x_beg += interval_geom.length()
+            sectvert_beg = sectvert_end
+
+        return  sorted(cutpoints, key=lambda x: x[0])
+
 #-----------------------------------------------------------------------------
 # Класс описывающий скважину на разрезе. Название скважины, расстояние от
 # начала линии разреза, геометрию отрезка разреза до и после скважины, точки
@@ -181,9 +217,97 @@ class GpFilter ():
         self.name_well = name_well
 
     #-------------------------------------------------------------------------
-    # создает массив точек линии фильтра приинициализации
+    # создает массив точек линии фильтра при инициализации
     # объекта фильтра
     #-------------------------------------------------------------------------
+    def set_filter(self, filter_string, alt, well_pnts):
+        records = filter_string.split(";")
+        y_begin = alt - float(records[0].strip().replace(',','.'))
+        y_end = alt - float(records[1].strip().replace(',','.'))
+        l_code = int(records[2].strip())
+
+        filter_pnts = []
+        index = 0
+        x,y = well_pnts[index]
+        while index < len(well_pnts) and y >= y_end:
+            x,y = well_pnts[index]
+            if y <= y_begin:
+                filter_pnts.append(well_pnts[index])
+            else: point_top = well_pnts[index]
+            index += 1
+        if index < len(well_pnts): point_bottom = well_pnts[index]
+        else: point_bottom = well_pnts[index-1]
+
+        xt, yt = point_top
+        xs, ys = filter_pnts[0]
+        xb, yb = point_bottom
+        xe, ye = filter_pnts[-1]
+
+        if not y_begin == ys:
+            if xs == xt: filter_pnts.insert(0, (xs, y_begin))
+            else:
+                ip = self.my_intersect(
+                                        point_top, filter_pnts[0],
+                                        (xt,y_begin),(xs,y_begin)
+                                       )
+
+                if ip: filter_pnts.insert(0, ip)
+
+        if not y_end == ye:
+            if xe == xb: filter_pnts.append((xe, y_end))
+            else:
+                ip = self.my_intersect(
+                                       filter_pnts[-1], point_bottom,
+                                       (xb, y_end), (xe, y_end)
+                                      )
+                if ip: filter_pnts.append(ip)
+
+        return filter_pnts, l_code
+
+    #-------------------------------------------------------------------------
+    # поиск координат пересечения отрезков
+    # по координатам концов отрезков
+    #-------------------------------------------------------------------------
+    def my_intersect (self, p1b, p1e, p2b, p2e):
+        x1b, y1b = p1b #x1 y1
+        x1e, y1e = p1e #x2 y2
+        x2b, y2b = p2b #x3 y3
+        x2e, y2e = p2e #x4 y4
+
+        def vm (ax, ay, bx, by):
+            return ax*by-bx*ay
+
+        def lc (x1b, y1b, x1e, y1e, x2b, y2b, x2e, y2e):
+            v1 = vm(x2e-x2b, y2e-y2b, x1b-x2b, y1b-y2b)
+            v2 = vm(x2e-x2b ,y2e-y2b, x1e-x2b, y1e-y2b)
+            v3 = vm(x1e-x1b, y1e-y1b, x2b-x1b, y2b-y1b)
+            v4 = vm(x1e-x1b, y1e-y1b, x2e-x1b, y2e-y1b)
+
+            if (v1*v2<0) and (v3*v4<0): return True
+            else: return False
+
+        def funct(xb, yb, xe, ye):
+            a = ye-yb
+            b = xb-xe
+            c = -xb*(ye-yb)+yb*(xe-xb)
+            return a, b, c
+
+        def point_intersect (a1, b1, c1, a2, b2, c2):
+            d = a1*b2-b1*a2
+            if lc(x1b, y1b, x1e, y1e, x2b, y2b, x2e, y2e):
+                dx = -c1*b2+b1*c2
+                dy = -a1*c2+c1*a2
+                x = dx/d
+                y = dy/d
+                return x, y
+            else: return False
+
+        f1 = funct(x1b, y1b, x1e, y1e)
+        f2 = funct(x2b, y2b, x2e, y2e)
+
+        return point_intersect (*f1, *f2)
+
+    """
     def set_filter(self, filter_string, alt, well_pnts):
         try:
             records = filter_string.split(";")
@@ -192,25 +316,73 @@ class GpFilter ():
             l_code = int(records[2].strip())
 
             filter_pnts = []
-            for point in well_pnts:
-                x,y = point
-                if (y <= y_begin) and (y >= y_end):
-                    filter_pnts.append(point)
+            #for point in well_pnts:
+            #    x,y = point
+            #    if (y <= y_begin) and (y >= y_end):
+            #        filter_pnts.append(point)
+            index = 0
+            x,y = well_pnts[index]
+            while index < len(well_pnts) and y >= y_end:
+                x,y = well_pnts[index]
+                if y <= y_begin:
+                    filter_pnts.append(well_pnts[index])
+                else: point_top = well_pnts[index]
+                index += 1
+            if index < len(well_pnts): point_bottom = well_pnts[index]
+            else: point_bottom = well_pnts[index-1]
 
-            return filter_pnts, l_code
-        except:
-            return False, -1
+            xt, yt = point_top
+            xs, ys = filter_pnts[0]
+            xb, yb = point_bottom
+            xe, ye = filter_pnts[-1]
+        except: pass
 
+        if not y_begin == ys:
+
+            # найти пересечение отрезков
+            line1 = QgsGeometry.fromPolylineXY(
+                                                    QgsPointXY(point_top),
+                                                    QgsPointXY(filter_pnts[0])
+                                                    )
+            line2 = QgsGeometry.fromPolylineXY(
+                                                    QgsPointXY(xt,y_begin),
+                                                    QgsPointXY(xs,y_begin)
+                                                   )
+            inter_pnt = line1.intersection(line2)
+            #x,y = inter_pnt.x(), inter_pnt.y()
+            #filter_pnts.insert(0, (x,y))
+            # полученную точку вставить впереди массива filter_pnts
+        if not y_end == ye:
+
+            # найти пересечение отрезков
+            line1 = QgsGeometry.fromPolylineXY(
+                                                QgsPointXY(filter_pnts[-1]),
+                                                QgsPointXY(point_bottom)
+                                               )
+            line2 = QgsGeometry.fromPolylineXY(
+                                                    QgsPointXY(xb, y_end),
+                                                    QgsPointXY(xe,y_end)
+                                                  )
+            inter_pnt = line1.intersection(line2)
+            #x,y = inter_pnt.x(), inter_pnt.y()
+            #filter_pnts.append(x,y)
+            # полученую точку добавить в конец списка filter_pnts
+
+        return filter_pnts, l_code
+        #except:
+        #return False, -1
+    """
     def get_filter(self, scale):
 
-        line = []
-        for point in self.filters_pnt:
-            x, y = point
-            line.append(QgsPointXY(x, y*scale))
-        geom = QgsGeometry.fromPolylineXY(line)
-        attr = [self.name_well, self.l_code]
+        if self.filters_pnt:
+            line = []
+            for point in self.filters_pnt:
+                x, y = point
+                line.append(QgsPointXY(x, y*scale))
+            geom = QgsGeometry.fromPolylineXY(line)
+            attr = [self.name_well, self.l_code]
 
-        return geom, attr
+            return geom, attr
 
 #-----------------------------------------------------------------------------
 #     GpFilter
@@ -220,7 +392,7 @@ class GpFilter ():
 # Класс линий профиля рельефа.
 # Профиль рельефа строиться по srtm и по изолиниям
 #-----------------------------------------------------------------------------
-class GpProfiles ():
+class GpProfiles (objCutline):
     def __init__(self, feature):
         self.geom_cutline = feature.geometry()
         self.ID = feature.id()
@@ -231,7 +403,8 @@ class GpProfiles ():
         self.sectpnt_izln = []
         self.alt_extrem = []
 
-    def add_izln(self, verts):
+    def add_izln(self, izline):
+        verts = self.cut_intersect_ln(self.geom_cutline, *izline)
         for vert in verts:
             x, y = vert
             self.sectpnt_izln.append((float(x), float(y)))
@@ -247,7 +420,6 @@ class GpProfiles ():
         vertexs = densify_line.asPolyline()
         # Получение координат вершин уплотненной линии разреза и
         # расстояний от начала до каждой из вершин
-        #profile_points = list()
         alt_list = []
         for i, vertx in enumerate(vertexs) :
             # Получение высоты с растра strm (координата Y профиля)
@@ -331,14 +503,18 @@ class GpProfiles ():
 # создать геометрии боковых шкал, нулевой линии (если она есть)
 # подумать над созданием линии пересечения разоезов
 #-----------------------------------------------------------------------------
-class rulerSection ():
-    def __init__ (self, ID, length, alt_min, alt_max, cutscale, intersect):
-        self.intersect = intersect
+class rulerSection (objCutline):
+    #def __init__ (self, ID, length, alt_min, alt_max, cutscale, intersect):
+    def __init__ (self, alt_min, alt_max, cutscale, feat_cutline, cuts_layer):
+        #self.intersect = intersect
+        self.intersect = self.intersect_lines(feat_cutline, cuts_layer)
         self.cm_step = cutscale * self.coef_unit()
         self.alt_min = math.floor(alt_min/self.cm_step)*self.cm_step
         self.alt_max = math.ceil(alt_max/self.cm_step)*self.cm_step
-        self.length = length
-        self.name = ID
+        self.length = feat_cutline.geometry().length()
+        #self.length = length
+        #self.name = ID
+        self.name = feat_cutline.id()
 
     def coef_unit (self):
         unit = QgsProject.instance().crs().mapUnits()
@@ -348,18 +524,38 @@ class rulerSection ():
         elif unit == Qgis.DistanceUnit.Kilometers: return 0.0001
         else: return -1
 
+    def intersect_lines(self, feat_cutline, cuts_layer):
+        geom_cut = feat_cutline.geometry()
+        cuts_layer.startEditing()
+        cuts_layer.deleteFeature(feat_cutline.id())
+        intersect_pnt = self.cut_intersect_ln(geom_cut, cuts_layer,"id")
+        cuts_layer.rollBack()
+
+        return intersect_pnt
+
     def get_ruler(self, scale=1):
         # линии шкалы
         ln_feats = []
         # левая линейка
-        points = [QgsPointXY(0,self.alt_min*scale),
-                  QgsPointXY(0,self.alt_max*scale)]
+        # создать линейку из сатиметровых отрезков
+        points = []
+        dop = self.alt_min
+        while dop <= self.alt_max:
+            points.append(QgsPointXY(0,dop*scale))
+            dop += self.cm_step
+        #points = [QgsPointXY(0,self.alt_min*scale),
+        #          QgsPointXY(0,self.alt_max*scale)]
         geom = QgsGeometry.fromPolylineXY(points)
         attr = ["ruler", "left"]
         ln_feats.append((geom, attr))
         # правая линейка
-        points = [QgsPointXY(self.length, self.alt_min*scale),
-                  QgsPointXY(self.length, self.alt_max*scale)]
+        points = []
+        dop = self.alt_min
+        while dop <= self.alt_max:
+            points.append(QgsPointXY(self.length, dop*scale))
+            dop += self.cm_step
+        #points = [QgsPointXY(self.length, self.alt_min*scale),
+        #          QgsPointXY(self.length, self.alt_max*scale)]
         geom = QgsGeometry.fromPolylineXY(points)
         attr = ["ruler", "right"]
         ln_feats.append((geom, attr))
@@ -417,7 +613,7 @@ class geoSectionline ():
         # список глубин всех вынесенных на разрез скважин
         # для поиска наиболее глубокой и расчета минимального значения линейки
         self.well_depths = []
-
+    """
     #------------------------------------------------------------------------
     # точки пересечения линий с линиями
     # на входе слой с линиями и фьючерс объекта линии разреза
@@ -454,7 +650,7 @@ class geoSectionline ():
             sectvert_beg = sectvert_end
 
         return  sorted(cutpoints, key=lambda x: x[0])
-
+    """
     #-------------------------------------------------------------------------
     #   добавление профилей разреза
     # ------------------------------------------------------------------------
@@ -463,10 +659,8 @@ class geoSectionline ():
         # создание объекта профиля
         self.profiline = GpProfiles(self.feat_cutline)
 
-        # получение списка точек линии профиля пересечений разреза
         # с изолиниями, построение профиля
-        verts = self.sect_cut_ln(*izln)
-        self.profiline.add_izln(verts)
+        self.profiline.add_izln(izln)
 
         # построение профиля по strm
         if srtm: self.profiline.add_srtm(srtm)
@@ -480,15 +674,11 @@ class geoSectionline ():
         if min_alt > min_depth:
             min_alt = min_depth
 
-        cuts_layer.startEditing()
-        cuts_layer.deleteFeature(self.Id)
-        intersect_pnt = self.sect_cut_ln(cuts_layer,"id")
-        cuts_layer.rollBack()
-
         # создание объекта линейки
-        self.ruler = rulerSection(self.Id, self.length,
-                                  min_alt, max_alt,
-                                  cutscale, intersect_pnt)
+        self.ruler = rulerSection(
+                                  min_alt, max_alt, cutscale,
+                                  self.feat_cutline, cuts_layer
+                                 )
 
     #-------------------------------------------------------------------------
     # добавление скважин
