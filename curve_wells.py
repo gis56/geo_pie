@@ -20,6 +20,7 @@ from qgis.core import (
                        QgsPointXY,
                        QgsPoint,
                        QgsFeatureRequest,
+                       QgsWkbTypes,
                        NULL
                       )
 from .pie_dial import formCurveWells
@@ -60,6 +61,65 @@ class objCutline ():
             sectvert_beg = sectvert_end
 
         return  sorted(cutpoints, key=lambda x: x[0])
+
+    #-------------------------------------------------------------------------
+    # Пересечение линии разреза с полигонами
+    # ------------------------------------------------------------------------
+    def cut_intersect_plg (self, geom_cutline, polygons_layer, field):
+        cutpoints = []
+        x_beg = 0
+        sectvert_iter = geom_cutline.vertices()
+        sectvert_beg = next(sectvert_iter)
+        for sectvert_end in sectvert_iter:
+            interval_geom = QgsGeometry.fromPolyline([sectvert_beg,
+                                                      sectvert_end])
+            # определение области отрезка и запрос на пересечение
+            rectbox = interval_geom.boundingBox()
+            request = QgsFeatureRequest().setFilterRect(rectbox).setFlags(
+                                             QgsFeatureRequest.ExactIntersect)
+            # Перебор изолиний пересакающих область текущего отрезка
+            for feat in polygons_layer.getFeatures(request):
+                feat_geom = feat.geometry()
+                intersect_geom = feat_geom.intersection(interval_geom)
+
+                if not intersect_geom.isEmpty():
+                    for  part_geom in intersect_geom.asGeometryCollection():
+                        v1 = part_geom.vertexAt(0)
+                        v2 = part_geom.vertexAt(1)
+                        x1 = v1.distance(sectvert_beg)+x_beg
+                        x2 = v2.distance(sectvert_beg)+x_beg
+                        if x1 > x2: x1, x2 = x2, x1
+                        cutpoints.append((x1, x2, feat[field]))
+            # Наращивание расстояние от начала линии разреза
+            x_beg += interval_geom.length()
+            sectvert_beg = sectvert_end
+
+        return  sorted(cutpoints, key=lambda x: x[0])
+
+    #-------------------------------------------------------------------------
+    # Объединение соседних полигонов с одинаковым признаком
+    #-------------------------------------------------------------------------
+    def union_intersect (self, data_list):
+
+        index = 0
+        while index < len(data_list)-1:
+            x1, x2, name = data_list[index]
+            n1, n2, next_name = data_list[index+1]
+            if name == next_name:
+                data_list[index+1] = (x1, n2, name)
+                data_list.pop(index)
+            index += 1
+
+        return data_list
+
+    # ------------------------------------------------------------------------
+    # Определение типа слоя и типа поля атрибутов
+    # ------------------------------------------------------------------------
+    def type_field (self, layer, field):
+        field_num = layer.fields().field(field).type()
+        lname = layer.name()
+        if field_num == 10: return QVariant.String, field, lname
+        if field_num == 2 or field_num == 4: return QVariant.Int, field, lname
 
 #-----------------------------------------------------------------------------
 # Класс описывающий скважину на разрезе. Название скважины, расстояние от
@@ -307,71 +367,6 @@ class GpFilter ():
 
         return point_intersect (*f1, *f2)
 
-    """
-    def set_filter(self, filter_string, alt, well_pnts):
-        try:
-            records = filter_string.split(";")
-            y_begin = alt - float(records[0].strip().replace(',','.'))
-            y_end = alt - float(records[1].strip().replace(',','.'))
-            l_code = int(records[2].strip())
-
-            filter_pnts = []
-            #for point in well_pnts:
-            #    x,y = point
-            #    if (y <= y_begin) and (y >= y_end):
-            #        filter_pnts.append(point)
-            index = 0
-            x,y = well_pnts[index]
-            while index < len(well_pnts) and y >= y_end:
-                x,y = well_pnts[index]
-                if y <= y_begin:
-                    filter_pnts.append(well_pnts[index])
-                else: point_top = well_pnts[index]
-                index += 1
-            if index < len(well_pnts): point_bottom = well_pnts[index]
-            else: point_bottom = well_pnts[index-1]
-
-            xt, yt = point_top
-            xs, ys = filter_pnts[0]
-            xb, yb = point_bottom
-            xe, ye = filter_pnts[-1]
-        except: pass
-
-        if not y_begin == ys:
-
-            # найти пересечение отрезков
-            line1 = QgsGeometry.fromPolylineXY(
-                                                    QgsPointXY(point_top),
-                                                    QgsPointXY(filter_pnts[0])
-                                                    )
-            line2 = QgsGeometry.fromPolylineXY(
-                                                    QgsPointXY(xt,y_begin),
-                                                    QgsPointXY(xs,y_begin)
-                                                   )
-            inter_pnt = line1.intersection(line2)
-            #x,y = inter_pnt.x(), inter_pnt.y()
-            #filter_pnts.insert(0, (x,y))
-            # полученную точку вставить впереди массива filter_pnts
-        if not y_end == ye:
-
-            # найти пересечение отрезков
-            line1 = QgsGeometry.fromPolylineXY(
-                                                QgsPointXY(filter_pnts[-1]),
-                                                QgsPointXY(point_bottom)
-                                               )
-            line2 = QgsGeometry.fromPolylineXY(
-                                                    QgsPointXY(xb, y_end),
-                                                    QgsPointXY(xe,y_end)
-                                                  )
-            inter_pnt = line1.intersection(line2)
-            #x,y = inter_pnt.x(), inter_pnt.y()
-            #filter_pnts.append(x,y)
-            # полученую точку добавить в конец списка filter_pnts
-
-        return filter_pnts, l_code
-        #except:
-        #return False, -1
-    """
     def get_filter(self, scale):
 
         if self.filters_pnt:
@@ -393,25 +388,30 @@ class GpFilter ():
 # Профиль рельефа строиться по srtm и по изолиниям
 #-----------------------------------------------------------------------------
 class GpProfiles (objCutline):
-    def __init__(self, feature):
+    def __init__(self, feature, izln, srtm):
         self.geom_cutline = feature.geometry()
         self.ID = feature.id()
         self.sect_length = self.geom_cutline.length()
         # Расчитать шаг из длины линии разреза
         self.step_point = self.geom_cutline.length() // 100
-        self.sectpnt_srtm = []
-        self.sectpnt_izln = []
+
         self.alt_extrem = []
+        if srtm: self.sectpnt_srtm = self.add_srtm(srtm)
+        else: self.sectpnt_srtm = False
+        self.sectpnt_izln = self.add_izln(izln)
 
     def add_izln(self, izline):
         verts = self.cut_intersect_ln(self.geom_cutline, *izline)
+        izline_points = []
         for vert in verts:
             x, y = vert
-            self.sectpnt_izln.append((float(x), float(y)))
+            izline_points.append((float(x), float(y)))
         self.alt_extrem.extend([
-                        min(self.sectpnt_izln, key=lambda y: y[1])[1],
-                        max(self.sectpnt_izln, key=lambda y: y[1])[1]
+                        min(izline_points, key=lambda y: y[1])[1],
+                        max(izline_points, key=lambda y: y[1])[1]
                         ])
+
+        return izline_points
 
     def add_srtm(self, srtm):
         # Уплотнение линии точками
@@ -421,6 +421,7 @@ class GpProfiles (objCutline):
         # Получение координат вершин уплотненной линии разреза и
         # расстояний от начала до каждой из вершин
         alt_list = []
+        srtm_points = []
         for i, vertx in enumerate(vertexs) :
             # Получение высоты с растра strm (координата Y профиля)
             point_outcrop = QgsPointXY(densify_line.vertexAt(i))
@@ -430,8 +431,10 @@ class GpProfiles (objCutline):
             # до текущей точки (координата X профиля)
             sec_x = densify_line.distanceToVertex(i)
             # Накопление списка точек профиля
-            self.sectpnt_srtm.append((sec_x, sec_y))
+            srtm_points.append((sec_x, sec_y))
         self.alt_extrem.extend([min(alt_list), max(alt_list)])
+
+        return srtm_points
 
     def get_extreme (self):
         return min(self.alt_extrem), max(self.alt_extrem)
@@ -600,6 +603,88 @@ class rulerSection (objCutline):
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
+#     GpAges - Класс пересечения возрастов с линией разреза
+#-----------------------------------------------------------------------------
+class GpAges(objCutline):
+    def __init__ (self, feature, data, extrem):
+        self.geom = feature.geometry()
+        self.cutname = feature.id()
+        self.lines = self.add(data)
+        self.extrem = extrem
+        self.ftype, self.fname, self.lname = self.type_field(*data)
+
+    def add(self, data):
+        inters = self.cut_intersect_plg(self.geom, *data)
+        unions = self.union_intersect(inters)
+        lines = []
+        for line in unions:
+            x1, x2, lcode = line
+            lines.append((float(x1), float(x2), lcode))
+        return lines
+
+    def get(self, profil_geom, scale=1):
+
+        if self.lines:
+            feat = []
+            for line in self.lines:
+                x1, x2, lcode =line
+                y1, y2 = self.extrem
+                y1 -= (y2-y1)/3
+                geom = QgsGeometry.fromPolygonXY([[
+                                                  QgsPointXY(x1,y1*scale),
+                                                  QgsPointXY(x1,y2*scale),
+                                                  QgsPointXY(x2,y2*scale),
+                                                  QgsPointXY(x2,y1*scale)
+                                                 ]])
+                geom.splitGeometry( profil_geom.asPolyline(), False)
+                attr = [self.cutname, lcode]
+                feat.append((geom, attr))
+
+            fields = [
+                      QgsField("idcut",QVariant.Int),
+                      QgsField(self.fname, self.ftype)
+                     ]
+
+            return (feat,f"{self.lname}-{self.cutname}",fields,"Polygon",False)
+        else: return False
+
+#-----------------------------------------------------------------------------
+#     GpRivers - Класс пересечения рек с линией разреза
+#-----------------------------------------------------------------------------
+class GpRivers(objCutline):
+    def __init__(self, feature, rivers):
+        self.geom = feature.geometry()
+        self.cutname = feature.id()
+        self.points = self.add(rivers)
+        self.ftype, self.fname, self.lname = self.type_field(*rivers)
+
+    def add(self, rivers):
+        verts = self.cut_intersect_ln(self.geom, *rivers)
+        points = []
+        for vert in verts:
+            x, name = vert
+            points.append((float(x), name))
+        return points
+
+    def get(self, scale=1):
+        if self.points:
+            feat = []
+            for point in self.points:
+                x, name = point
+                y = 0
+                geom = QgsGeometry.fromPointXY(QgsPointXY(x,y*scale))
+                attr = [self.cutname, name]
+                feat.append((geom, attr))
+
+            fields = [
+                      QgsField("idcut",QVariant.Int),
+                      QgsField(self.fname, self.ftype)
+                     ]
+
+             #QgsField("name", QVariant.String)
+            return (feat, f"{self.lname}-{self.cutname}",fields,"Point",False)
+        else: return False
+#-----------------------------------------------------------------------------
 # Класс линии разреза. Мега большой класс с информацией по каждой линии
 # разреза. Рельеф, пересечения рек и возрастов. Скважины массив объектов
 # GpWell.
@@ -613,57 +698,16 @@ class geoSectionline ():
         # список глубин всех вынесенных на разрез скважин
         # для поиска наиболее глубокой и расчета минимального значения линейки
         self.well_depths = []
-    """
-    #------------------------------------------------------------------------
-    # точки пересечения линий с линиями
-    # на входе слой с линиями и фьючерс объекта линии разреза
-    # на выходе геометрия и атрибуты точек пересечения
-    # геометрия: X=расстояние от начала разреза, Y=либо атрибуту поля с
-    # высотами в случае с изолиниями, либо точке пересечения вертикали
-    # с линией профиля
-    # ------------------------------------------------------------------------
-    def sect_cut_ln (self, lines_layer, field):
-        cutpoints = []
-        x_beg = 0
-        sectvert_iter = self.feat_cutline.geometry().vertices()
-        sectvert_beg = next(sectvert_iter)
-        for sectvert_end in sectvert_iter:
-            interval_geom = QgsGeometry.fromPolyline([sectvert_beg,
-                                                      sectvert_end])
-            # определение области отрезка и запрос на пересечение
-            rectbox = interval_geom.boundingBox()
-            request = QgsFeatureRequest().setFilterRect(rectbox).setFlags(
-                                             QgsFeatureRequest.ExactIntersect)
-            # Перебор изолиний пересакающих область текущего отрезка
-            for featline in lines_layer.getFeatures(request):
-                featline_geom = featline.geometry()
-                intersect_geom = featline_geom.intersection(interval_geom)
+        self.ln_layer = []
+        self.plg_layer = []
 
-                if not intersect_geom.isEmpty():
-                    for  part_geom in intersect_geom.asGeometryCollection() :
-                        dist = part_geom.distance(
-                                          QgsGeometry.fromPoint(sectvert_beg)
-                                         )
-                        cutpoints.append((x_beg+dist, featline[field]))
-            # Наращивание расстояние от начала линии разреза
-            x_beg += interval_geom.length()
-            sectvert_beg = sectvert_end
-
-        return  sorted(cutpoints, key=lambda x: x[0])
-    """
     #-------------------------------------------------------------------------
     #   добавление профилей разреза
     # ------------------------------------------------------------------------
     def add_profile(self, izln, srtm):
 
         # создание объекта профиля
-        self.profiline = GpProfiles(self.feat_cutline)
-
-        # с изолиниями, построение профиля
-        self.profiline.add_izln(izln)
-
-        # построение профиля по strm
-        if srtm: self.profiline.add_srtm(srtm)
+        self.profiline = GpProfiles(self.feat_cutline, izln, srtm)
 
     #-------------------------------------------------------------------------
     # добавление линейки
@@ -680,6 +724,36 @@ class geoSectionline ():
                                   self.feat_cutline, cuts_layer
                                  )
 
+    #-------------------------------------------------------------------------
+    # добавление рек
+    # ------------------------------------------------------------------------
+    def add_rivers (self, rivers):
+        if rivers:
+            self.rivers = GpRivers(self.feat_cutline, rivers)
+
+    #-------------------------------------------------------------------------
+    # добавление возрастов
+    # ------------------------------------------------------------------------
+    def add_ages (self, ages):
+        if ages:
+            extrem = self.profiline.get_extreme()
+            self.ages = GpAges(self.feat_cutline, ages, extrem)
+
+    #-------------------------------------------------------------------------
+    # добавление слоев пересечения в массивы линий и полигонов
+    #-------------------------------------------------------------------------
+    def add_lnplg (self, lnplg):
+        for data in lnplg:
+            layer, field = data
+            if layer.geometryType() == QgsWkbTypes.LineGeometry:
+                self.ln_layer.append(GpRivers(self.feat_cutline, data))
+            elif layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                self.plg_layer.append(GpAges(
+                                             self.feat_cutline,
+                                             data,
+                                             self.profiline.get_extreme()
+                                             )
+                                    )
     #-------------------------------------------------------------------------
     # добавление скважин
     #-------------------------------------------------------------------------
@@ -786,6 +860,27 @@ class geoSectionline ():
 
         return feads, f"filters-{profil_name}", fields, "LineString", False
 
+    # ------------------------------------------------------------------------
+    # передача геометрий линейных слоев
+    # ------------------------------------------------------------------------
+    def get_lnlayer (self, scale):
+        list_data = []
+        for layer in self.ln_layer:
+            list_data.append(layer.get(scale))
+        return list_data
+
+    # ------------------------------------------------------------------------
+    # передача геометрий полигональных слоев
+    # ------------------------------------------------------------------------
+    def get_plglayer (self, scale):
+        list_data = []
+        profil_geom = self.profiline.get_srtm_geom(scale)
+        if not profil_geom:
+            profil_geom = self.profiline.get_izln_geom(scale)
+        for layer in self.plg_layer:
+            list_data.append(layer.get(profil_geom, scale))
+        return list_data
+
 #-----------------------------------------------------------------------------
 #    geoSectionline
 #-----------------------------------------------------------------------------
@@ -799,6 +894,9 @@ def cut_curvwell():
         wfields = dialog.get_fieldwells()
         srtm = dialog.get_strm()
         izln = dialog.get_izline()
+        #rivers = dialog.get_rivers()
+        #ages = dialog.get_ages()
+        lnplg = dialog.get_lnplg()
         #scale = dialog.getscale()
         mapscale, cutscale = dialog.get_mapcut_scale()
         scale = mapscale / cutscale
@@ -814,6 +912,12 @@ def cut_curvwell():
             cline.add_profile(izln, srtm)
             # добавление линейки
             cline.add_ruler(dialog.get_layercut(), cutscale)
+            # добавление слоев линий и полигонов
+            cline.add_lnplg(lnplg)
+            # добавление рек
+            #cline.add_rivers(rivers)
+            # добавление возрастов
+            #cline.add_ages(ages)
             # добавление объекта разреза в список
             cut_lines.append(cline)
 
@@ -824,8 +928,9 @@ def cut_curvwell():
 
             # профили разреза
             layer_data =  cut.profiline.get_profils(scale)
-            if layer_data: layer = maplayer(*layer_data)
-            group.addLayer(layer)
+            if layer_data:
+                layer = maplayer(*layer_data)
+                group.addLayer(layer)
 
             # линейка
             ln_ruler, pnt_ruler = cut.ruler.get_ruler(scale)
@@ -848,6 +953,33 @@ def cut_curvwell():
                 layer = maplayer(feads, *layer_data)
                 layer.loadNamedStyle(f'{path}/legstyle/filters_ln.qml')
                 group.addLayer(layer)
+            """
+            # реки
+            if rivers: layer_data = cut.rivers.get(scale)
+            else: layer_data = False
+            if layer_data:
+                layer = maplayer(*layer_data)
+                group.addLayer(layer)
+            """
+            # вывод линейных слоев
+            for layer_data in cut.get_lnlayer(scale):
+                layer = maplayer(*layer_data)
+                group.addLayer(layer)
+
+            # вывод полигональных слоев
+            for layer_data in cut.get_plglayer(scale):
+                layer = maplayer(*layer_data)
+                group.addLayer(layer)
+            """
+            # возраста
+            profil_geom = cut.profiline.get_izln_geom(scale)
+            if srtm: profil_geom = cut.profiline.get_srtm_geom(scale)
+            if ages: layer_data = cut.ages.get(profil_geom, scale)
+            else: layer_data = False
+            if layer_data:
+                layer = maplayer(*layer_data)
+                group.addLayer(layer)
+            """
 
         txt = f'Результат в группе "Разрезы". {errlist}'
     else: txt = "Отмена."

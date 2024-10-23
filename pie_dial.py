@@ -263,15 +263,47 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mLayer_izln.activated.connect(self.activ_mLayer_izln)
         self.mLayer_izln.currentIndexChanged.connect(self.activ_mLayer_izln)
 
+        # Настройка mLayer_rivers и mLayer_ages (реки и возроста)
+        #self.groupBox_rivers.setChecked(False)
+        #self.groupBox_rivers.clicked.connect(self.activ_mLayer_rivers)
+        #self.mLayer_rivers.setFilters(QgsMapLayerProxyModel.LineLayer)
+        #self.mLayer_rivers.currentIndexChanged.connect(self.activ_mLayer_rivers)
+
+        #self.groupBox_ages.setChecked(False)
+        #self.groupBox_ages.clicked.connect(self.activ_mLayer_ages)
+        #self.mLayer_ages.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        #self.mLayer_ages.currentIndexChanged.connect(self.activ_mLayer_ages)
+
+        # Настройка списка слоев пересечения
+        self.data_lnplg = []
+        self.mLayer_lnplg.setFilters(
+                                     QgsMapLayerProxyModel.PolygonLayer |
+                                     QgsMapLayerProxyModel.LineLayer
+                                    )
+        self.mLayer_lnplg.currentIndexChanged.connect(self.activ_mLayer_lnplg)
+        self.pButton_add.clicked.connect(self.add_click)
+        self.pButton_remove.clicked.connect(self.remove_click)
+
         # Настройка типов полей атрибутов
         self.mField_well.setFilters(QgsFieldProxyModel.String)
         self.mField_file.setFilters(QgsFieldProxyModel.String)
         self.mField_filters.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
-        self.mField_elev.setFilters(QgsFieldProxyModel.Int |
+        self.mField_elev.setFilters(
+                                    QgsFieldProxyModel.Int |
                                     QgsFieldProxyModel.Double |
-                                    QgsFieldProxyModel.LongLong)
-
+                                    QgsFieldProxyModel.LongLong
+                                   )
+        #self.mField_rivers.setFilters(QgsFieldProxyModel.String)
+        #self.mField_ages.setFilters(
+        #                            QgsFieldProxyModel.Int |
+        #                            QgsFieldProxyModel.LongLong
+        #                           )
+        self.mField_lnplg.setFilters(
+                                     QgsFieldProxyModel.String |
+                                     QgsFieldProxyModel.Int |
+                                     QgsFieldProxyModel.LongLong
+                                    )
         # Настройка масштабов
         self.map_mScale.setScale(100000)
         self.cut_mScale.setScale(25000)
@@ -279,7 +311,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         #self.checkBox_Features.setChecked(False)
 
     # Действия на активацию и выбор слоя скважин в mLayer
-    def activ_mLayer(self):
+    def activ_mLayer (self):
         # Инициализация полей атрибутов
         self.mField_well.setLayer(self.mLayer.currentLayer())
         self.mField_file.setLayer(self.mLayer.currentLayer())
@@ -287,23 +319,62 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_filters.setLayer(self.mLayer.currentLayer())
 
     # Действия на активацию и выбор слоя изолиний
-    def activ_mLayer_izln(self):
+    def activ_mLayer_izln (self):
         self.mField_elev.setLayer(self.mLayer_izln.currentLayer())
+
+    # Действия на активацию и выбор слоя с реками
+    #def activ_mLayer_rivers (self):
+    #    if self.groupBox_rivers.isChecked():
+    #        self.mField_rivers.setLayer(self.mLayer_rivers.currentLayer())
+
+    # Действия на активацию и выбор слоя с возрастами
+    #def activ_mLayer_ages (self):
+    #    if self.groupBox_ages.isChecked():
+    #        self.mField_ages.setLayer(self.mLayer_ages.currentLayer())
+
+    # Действия на активацию и выбор слоев пересечения
+    def activ_mLayer_lnplg (self):
+         self.mField_lnplg.setLayer(self.mLayer_lnplg.currentLayer())
+
+    # Действия на нажатие клавиши добавить в список
+    def add_click (self):
+        layer = self.mLayer_lnplg.currentLayer()
+        field = self.mField_lnplg.currentField()
+        self.list_lnplg.addItem(f'{layer.name()}\t{field}')
+        self.data_lnplg.append((layer, field))
+
+   # Действия на нажатие клавиши удалить из списка
+    def remove_click (self):
+        index = self.list_lnplg.currentRow()
+        self.list_lnplg.takeItem(index)
+        self.data_lnplg.pop(index)
 
     # Подготовка и запуск формы диалога
     def run(self):
         self.activ_mLayer()
         self.activ_mLayer_izln()
+        self.activ_mLayer_lnplg()
         self.exec_()
         return self.result()
 
     # Перегрузка метода диалогового окна accept для
     # проверки заполненности всех полей формы
     def accept (self) :
+        # Проверка выбора поля рек
+        #rivers_field = True
+        #if self.groupBox_rivers.isChecked():
+        #    if not self.mField_rivers.currentField(): rivers_field = False
+        # Проверка выбора поля возрастов
+        #ages_field = True
+        #if self.groupBox_rivers.isChecked():
+        #    if not self.mField_ages.currentField(): ages_field = False
+
         # Проверка пути к файлу и выбранного поля
-        if (self.mField_well.currentField() and
+        if (
+            self.mField_well.currentField() and
             self.mField_alt.currentField() and
-            self.mField_file.currentField()):
+            self.mField_file.currentField()
+           ):
             self.done(QtWidgets.QDialog.Accepted)
         else:
             self.msgBox.warning(self,"Матрица скважин",
@@ -329,7 +400,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         return [feat for feat in self.mLayer_cut.currentLayer().getFeatures()]
 
     def get_fieldwells (self):
-        return (self.mField_well.currentField(),
+        return (
+                self.mField_well.currentField(),
                 self.mField_alt.currentField(),
                 self.mField_file.currentField(),
                 self.mField_filters.currentField()
@@ -349,6 +421,25 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
                 self.mLayer_izln.currentLayer(),
                 self.mField_elev.currentField()
                )
+
+    def get_rivers (self):
+        if self.groupBox_rivers.isChecked():
+            return (
+                    self.mLayer_rivers.currentLayer(),
+                    self.mField_rivers.currentField()
+                   )
+        else: return False
+
+    def get_ages (self):
+        if self.groupBox_ages.isChecked():
+            return (
+                    self.mLayer_ages.currentLayer(),
+                    self.mField_ages.currentField()
+                   )
+        else: return False
+
+    def get_lnplg (self):
+        return self.data_lnplg
 
 #-----------------------------------------------------------------------------
 #       formCurveWells
