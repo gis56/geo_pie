@@ -2,6 +2,7 @@
 
 import os
 import math
+import re
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
@@ -121,13 +122,61 @@ class objCutline ():
         if field_num == 10: return QVariant.String, field, lname
         if field_num == 2 or field_num == 4: return QVariant.Int, field, lname
 
+# ----------------------------------------------------------------------------
+# Класс робительский для классов описывающих скважины по глубине:
+# фильтры, возроста, литология
+# ----------------------------------------------------------------------------
+class objDepth ():
+    #-------------------------------------------------------------------------
+    # поиск координат пересечения отрезков
+    # по координатам концов отрезков
+    #-------------------------------------------------------------------------
+    def my_intersect (self, p1b, p1e, p2b, p2e):
+        x1b, y1b = p1b #x1 y1
+        x1e, y1e = p1e #x2 y2
+        x2b, y2b = p2b #x3 y3
+        x2e, y2e = p2e #x4 y4
+
+        def vm (ax, ay, bx, by):
+            return ax*by-bx*ay
+
+        def lc (x1b, y1b, x1e, y1e, x2b, y2b, x2e, y2e):
+            v1 = vm(x2e-x2b, y2e-y2b, x1b-x2b, y1b-y2b)
+            v2 = vm(x2e-x2b ,y2e-y2b, x1e-x2b, y1e-y2b)
+            v3 = vm(x1e-x1b, y1e-y1b, x2b-x1b, y2b-y1b)
+            v4 = vm(x1e-x1b, y1e-y1b, x2e-x1b, y2e-y1b)
+
+            if (v1*v2<0) and (v3*v4<0): return True
+            else: return False
+
+        def funct(xb, yb, xe, ye):
+            a = ye-yb
+            b = xb-xe
+            c = -xb*(ye-yb)+yb*(xe-xb)
+            return a, b, c
+
+        def point_intersect (a1, b1, c1, a2, b2, c2):
+            d = a1*b2-b1*a2
+            if lc(x1b, y1b, x1e, y1e, x2b, y2b, x2e, y2e):
+                dx = -c1*b2+b1*c2
+                dy = -a1*c2+c1*a2
+                x = dx/d
+                y = dy/d
+                return x, y
+            else: return False
+
+        f1 = funct(x1b, y1b, x1e, y1e)
+        f2 = funct(x2b, y2b, x2e, y2e)
+
+        return point_intersect (*f1, *f2)
+
 #-----------------------------------------------------------------------------
 # Класс описывающий скважину на разрезе. Название скважины, расстояние от
 # начала линии разреза, геометрию отрезка разреза до и после скважины, точки
 # по глубине.
 # ----------------------------------------------------------------------------
 class GpWell ():
-    def __init__(self, point, depthlist, alt, wname, filters, data_sect):
+    def __init__(self, point, depthlist, alt, wname, filters, gtr, data_sect):
         self.name_well = wname
         self.alt = alt
         self.x, self.y = point
@@ -136,6 +185,8 @@ class GpWell ():
         self.points_depth, self.sect_points = self.well_point_dept()
         if not (filters == NULL): self.filters = self.add_filters(filters)
         else: self.filters = False
+        if gtr: self.gtr = self.add_gtr(gtr)
+        else: self.gtr = False
 
     #-------------------------------------------------------------------------
     # создание геометрии отрезков линии разреза до и после скважины
@@ -209,6 +260,26 @@ class GpWell ():
             return filters
         except:
             return False
+
+    # ------------------------------------------------------------------------
+    # добавление данных из паспорта скважин
+    # список списков объектов по каждому ключу
+    # ------------------------------------------------------------------------
+    def add_gtr (self, gtr_dict):
+        obj_dict = {}
+        for key, vals in gtr_dict.items():
+            #obj_dict = {key}
+            obj_values = []
+            for tupl in vals:
+                obj_values.append(
+                                  GpGtr(
+                                        tupl,
+                                        self.name_well,
+                                        self.sect_points
+                                       )
+                                 )
+            obj_dict[key] = obj_values
+        return obj_dict
 
     # Линия скважины на разрезе
     def get_sectionLine (self, scale=1):
@@ -382,6 +453,80 @@ class GpFilter ():
 #-----------------------------------------------------------------------------
 #     GpFilter
 #-----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# Класс GpGtr
+# ----------------------------------------------------------------------------
+class GpGtr (objDepth):
+    def __init__(self, tupl, name_well, well_pnts):
+        self.filters_pnt, self.l_code = self.set_gtr(
+                                                     tupl,
+                                                     well_pnts
+                                                    )
+        self.name_well = name_well
+
+    #-------------------------------------------------------------------------
+    # создает массив точек линии фильтра при инициализации
+    # объекта фильтра
+    #-------------------------------------------------------------------------
+    def set_gtr(self, tupl, well_pnts):
+        y_begin, y_end, l_code = tupl
+        filter_pnts = []
+        index = 0
+        x,y = well_pnts[index]
+        """
+        msgBox = QMessageBox()
+        msgBox.setText(f"{y}<={y_begin}, {y_end}, {l_code}")
+        msgBox.exec()
+        """
+        # !!!! проверить список well_pnts
+        # начинается не с первой точки а со второй (на 10 метров ниже)!!!!
+        while index < len(well_pnts) and y >= y_end:
+            x,y = well_pnts[index]
+            if y <= y_begin:
+                filter_pnts.append(well_pnts[index])
+            else: point_top = well_pnts[index]
+            index += 1
+        if index < len(well_pnts): point_bottom = well_pnts[index]
+        else: point_bottom = well_pnts[index-1]
+
+        xt, yt = point_top
+        xs, ys = filter_pnts[0]
+        xb, yb = point_bottom
+        xe, ye = filter_pnts[-1]
+
+        if not y_begin == ys:
+            if xs == xt: filter_pnts.insert(0, (xs, y_begin))
+            else:
+                ip = self.my_intersect(
+                                        point_top, filter_pnts[0],
+                                        (xt,y_begin),(xs,y_begin)
+                                       )
+
+                if ip: filter_pnts.insert(0, ip)
+
+        if not y_end == ye:
+            if xe == xb: filter_pnts.append((xe, y_end))
+            else:
+                ip = self.my_intersect(
+                                       filter_pnts[-1], point_bottom,
+                                       (xb, y_end), (xe, y_end)
+                                      )
+                if ip: filter_pnts.append(ip)
+
+        return filter_pnts, l_code
+
+    def get_gtr(self, scale):
+
+        if self.filters_pnt:
+            line = []
+            for point in self.filters_pnt:
+                x, y = point
+                line.append(QgsPointXY(x, y*scale))
+            geom = QgsGeometry.fromPolylineXY(line)
+            attr = [self.name_well, self.l_code]
+
+            return geom, attr
 
 #-----------------------------------------------------------------------------
 # Класс линий профиля рельефа.
@@ -723,7 +868,7 @@ class geoSectionline ():
                                   min_alt, max_alt, cutscale,
                                   self.feat_cutline, cuts_layer
                                  )
-
+    """
     #-------------------------------------------------------------------------
     # добавление рек
     # ------------------------------------------------------------------------
@@ -738,7 +883,7 @@ class geoSectionline ():
         if ages:
             extrem = self.profiline.get_extreme()
             self.ages = GpAges(self.feat_cutline, ages, extrem)
-
+    """
     #-------------------------------------------------------------------------
     # добавление слоев пересечения в массивы линий и полигонов
     #-------------------------------------------------------------------------
@@ -754,11 +899,46 @@ class geoSectionline ():
                                              self.profiline.get_extreme()
                                              )
                                     )
+
+    # ------------------------------------------------------------------------
+    # чтение файла паспорта скважины
+    # ------------------------------------------------------------------------
+    def read_gtr (self, path, alt):
+        try:
+            #csv_path = os.path.join(csvdir, csv)
+            with open (path, 'r') as gtr:
+                gtr_dict = {}
+                value = []
+                err = ""
+                for line in gtr:
+                    name = re.match(r'^\[\D+\]', line)
+                    if not name == None:
+                        value = []
+                        key = name.group(0)[1:-1].strip()
+                        gtr_dict[key] = value
+                    else:
+                        records = line.split(";")
+                        depth1 = float(records[0].strip().replace(',','.'))
+                        depth2 = float(records[1].strip().replace(',','.'))
+                        param = int(records[2].strip())
+                        gtr_dict[key].append((alt-depth1, alt-depth2, param))
+
+            gtr.close()
+            return gtr_dict
+        except FileNotFoundError:
+            return f"{name}данные о глубине не число."
+        except ValueError:
+            return False
+            #return f"{name} -  в данных о глубине не число."
+        except Exception as e:
+            return False #, f"gtr - {name} - {e}."
+            #return f"gtr - {name} - {e}."
+
     #-------------------------------------------------------------------------
     # добавление скважин
     #-------------------------------------------------------------------------
     def add_depthwells (self, layer_wells, fields):
-
+        """
         def addwell():
              # создание объекта скважины
              data_sect = (
@@ -771,11 +951,13 @@ class geoSectionline ():
              well_depth = GpWell(
                                   (x,y), depthlist,
                                   alt, wname,
-                                  filters, data_sect
+                                  filters, gtr_dict, data_sect
                                 )
-             self.depth_wells.append(well_depth)
 
-        fname, falt, ffile, ffilters = fields
+             self.depth_wells.append(well_depth)
+        """
+
+        fname, falt, ffile, ffilters, fgtr = fields
         csvdir = os.path.dirname(layer_wells.source())
         cut_geom = self.feat_cutline.geometry()
         errlist = ""
@@ -786,16 +968,35 @@ class geoSectionline ():
             vertx_geom, icur, iprv, inxt, sqr_dist = \
                  cut_geom.closestVertex(fet_req.geometry().asPoint())
 
-            csv = fet_req[ffile]
-            wname = fet_req[fname]
-            filters= fet_req[ffilters]
-            if csv == NULL:
-                errlist += f"\n{wname} - нет данных о глубине."
-                continue
+            data_sect = (
+                         cut_geom.vertexAt(iprv),
+                         vertx_geom,
+                         cut_geom.vertexAt(inxt),
+                         cut_geom.distanceToVertex(icur)
+                        )
+
             x = fet_req.geometry().asPoint().x()
             y = fet_req.geometry().asPoint().y()
             alt = fet_req[falt]
+
+            csv = fet_req[ffile]
+            wname = fet_req[fname]
+            filters= fet_req[ffilters]
+
+            # чтение gtr-файла
+            gtr = fet_req[fgtr]
+            if not gtr == NULL:
+                gtr_path = os.path.join(csvdir, gtr)
+                gtr_dict = self.read_gtr(gtr_path, alt)
+            else: gtr_dict = False
+
+            # пересмотреть условие с not и без continue
+            if csv == NULL:
+                errlist += f"\n{wname} - нет данных о глубине."
+                continue
             # Чтение файла
+            # вынести чтение файла глубин в отдельную функцию
+            # и убрать из этой функции try except
             try:
                 csv_path = os.path.join(csvdir, csv)
                 with open (csv_path, 'r') as csvfile:
@@ -809,14 +1010,38 @@ class geoSectionline ():
                     self.well_depths.append(alt-depth)
 
                 csvfile.close()
-                addwell()
+
+                self.depth_wells.append(
+                                        GpWell(
+                                               (x,y),
+                                               depthlist,
+                                               alt,
+                                               wname,
+                                               filters,
+                                               gtr_dict,
+                                               data_sect
+                                              )
+                                       )
+
+                #addwell()
 
             except FileNotFoundError:
                 try:
                     depth = float(csv.strip().replace(',','.'))
                     depthlist = [(depth,0,0)]
                     self.well_depths.append(alt-depth)
-                    addwell()
+                    self.depth_wells.append(
+                                            GpWell(
+                                                   (x,y),
+                                                   depthlist,
+                                                   alt,
+                                                   wname,
+                                                   filters,
+                                                   gtr_dict,
+                                                   data_sect
+                                                  )
+                                           )
+                    #addwell()
                 except ValueError:
                     errlist += f"\n{wname} -  данные о глубине не число."
             except ValueError:
@@ -861,6 +1086,37 @@ class geoSectionline ():
         return feads, f"filters-{profil_name}", fields, "LineString", False
 
     # ------------------------------------------------------------------------
+    # передача данных паспорта скважин
+    # в ообъектах скважин хранится словарь со списками объектов gtr
+    # ------------------------------------------------------------------------
+    def get_gtr (self, scale):
+        profil_name = self.Id
+        fields = [QgsField("name",QVariant.String),
+                  QgsField("lcode",QVariant.Int)]
+        key_list = []
+        for well in self.depth_wells:
+            if well.gtr: key_list.extend(well.gtr.keys())
+
+        keys = set(key_list)
+        data_list = []
+        for key in keys:
+            feads =[]
+            for well in self.depth_wells:
+                # использовать get для словаря
+                gtr = False
+                if well.gtr: gtr = well.gtr.get(key, False)
+                if gtr:
+                    for objs in gtr:
+                        if objs: feads.append(objs.get_gtr(scale))
+                    data_list.append((
+                                      feads,
+                                      f"{key}-{profil_name}",
+                                      fields,
+                                      "LineString",
+                                      False
+                                    ))
+        return data_list
+    # ------------------------------------------------------------------------
     # передача геометрий линейных слоев
     # ------------------------------------------------------------------------
     def get_lnlayer (self, scale):
@@ -894,8 +1150,6 @@ def cut_curvwell():
         wfields = dialog.get_fieldwells()
         srtm = dialog.get_strm()
         izln = dialog.get_izline()
-        #rivers = dialog.get_rivers()
-        #ages = dialog.get_ages()
         lnplg = dialog.get_lnplg()
         #scale = dialog.getscale()
         mapscale, cutscale = dialog.get_mapcut_scale()
@@ -914,10 +1168,6 @@ def cut_curvwell():
             cline.add_ruler(dialog.get_layercut(), cutscale)
             # добавление слоев линий и полигонов
             cline.add_lnplg(lnplg)
-            # добавление рек
-            #cline.add_rivers(rivers)
-            # добавление возрастов
-            #cline.add_ages(ages)
             # добавление объекта разреза в список
             cut_lines.append(cline)
 
@@ -953,14 +1203,14 @@ def cut_curvwell():
                 layer = maplayer(feads, *layer_data)
                 layer.loadNamedStyle(f'{path}/legstyle/filters_ln.qml')
                 group.addLayer(layer)
-            """
-            # реки
-            if rivers: layer_data = cut.rivers.get(scale)
-            else: layer_data = False
-            if layer_data:
-                layer = maplayer(*layer_data)
-                group.addLayer(layer)
-            """
+
+            # данные паспорта скважины
+            for data in cut.get_gtr(scale):
+                feads, *layer_data = data
+                if feads:
+                    layer = maplayer(feads, *layer_data)
+                    group.addLayer(layer)
+
             # вывод линейных слоев
             for layer_data in cut.get_lnlayer(scale):
                 layer = maplayer(*layer_data)
@@ -970,16 +1220,6 @@ def cut_curvwell():
             for layer_data in cut.get_plglayer(scale):
                 layer = maplayer(*layer_data)
                 group.addLayer(layer)
-            """
-            # возраста
-            profil_geom = cut.profiline.get_izln_geom(scale)
-            if srtm: profil_geom = cut.profiline.get_srtm_geom(scale)
-            if ages: layer_data = cut.ages.get(profil_geom, scale)
-            else: layer_data = False
-            if layer_data:
-                layer = maplayer(*layer_data)
-                group.addLayer(layer)
-            """
 
         txt = f'Результат в группе "Разрезы". {errlist}'
     else: txt = "Отмена."

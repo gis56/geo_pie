@@ -263,17 +263,6 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mLayer_izln.activated.connect(self.activ_mLayer_izln)
         self.mLayer_izln.currentIndexChanged.connect(self.activ_mLayer_izln)
 
-        # Настройка mLayer_rivers и mLayer_ages (реки и возроста)
-        #self.groupBox_rivers.setChecked(False)
-        #self.groupBox_rivers.clicked.connect(self.activ_mLayer_rivers)
-        #self.mLayer_rivers.setFilters(QgsMapLayerProxyModel.LineLayer)
-        #self.mLayer_rivers.currentIndexChanged.connect(self.activ_mLayer_rivers)
-
-        #self.groupBox_ages.setChecked(False)
-        #self.groupBox_ages.clicked.connect(self.activ_mLayer_ages)
-        #self.mLayer_ages.setFilters(QgsMapLayerProxyModel.PolygonLayer)
-        #self.mLayer_ages.currentIndexChanged.connect(self.activ_mLayer_ages)
-
         # Настройка списка слоев пересечения
         self.data_lnplg = []
         self.mLayer_lnplg.setFilters(
@@ -289,16 +278,12 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_file.setFilters(QgsFieldProxyModel.String)
         self.mField_filters.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
+        self.mField_gtr.setFilters(QgsFieldProxyModel.String)
         self.mField_elev.setFilters(
                                     QgsFieldProxyModel.Int |
                                     QgsFieldProxyModel.Double |
                                     QgsFieldProxyModel.LongLong
                                    )
-        #self.mField_rivers.setFilters(QgsFieldProxyModel.String)
-        #self.mField_ages.setFilters(
-        #                            QgsFieldProxyModel.Int |
-        #                            QgsFieldProxyModel.LongLong
-        #                           )
         self.mField_lnplg.setFilters(
                                      QgsFieldProxyModel.String |
                                      QgsFieldProxyModel.Int |
@@ -317,20 +302,11 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_file.setLayer(self.mLayer.currentLayer())
         self.mField_alt.setLayer(self.mLayer.currentLayer())
         self.mField_filters.setLayer(self.mLayer.currentLayer())
+        self.mField_gtr.setLayer(self.mLayer.currentLayer())
 
     # Действия на активацию и выбор слоя изолиний
     def activ_mLayer_izln (self):
         self.mField_elev.setLayer(self.mLayer_izln.currentLayer())
-
-    # Действия на активацию и выбор слоя с реками
-    #def activ_mLayer_rivers (self):
-    #    if self.groupBox_rivers.isChecked():
-    #        self.mField_rivers.setLayer(self.mLayer_rivers.currentLayer())
-
-    # Действия на активацию и выбор слоя с возрастами
-    #def activ_mLayer_ages (self):
-    #    if self.groupBox_ages.isChecked():
-    #        self.mField_ages.setLayer(self.mLayer_ages.currentLayer())
 
     # Действия на активацию и выбор слоев пересечения
     def activ_mLayer_lnplg (self):
@@ -360,20 +336,12 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
     # Перегрузка метода диалогового окна accept для
     # проверки заполненности всех полей формы
     def accept (self) :
-        # Проверка выбора поля рек
-        #rivers_field = True
-        #if self.groupBox_rivers.isChecked():
-        #    if not self.mField_rivers.currentField(): rivers_field = False
-        # Проверка выбора поля возрастов
-        #ages_field = True
-        #if self.groupBox_rivers.isChecked():
-        #    if not self.mField_ages.currentField(): ages_field = False
-
         # Проверка пути к файлу и выбранного поля
         if (
             self.mField_well.currentField() and
             self.mField_alt.currentField() and
-            self.mField_file.currentField()
+            self.mField_file.currentField() and
+            self.mField_gtr.currentField()
            ):
             self.done(QtWidgets.QDialog.Accepted)
         else:
@@ -404,7 +372,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
                 self.mField_well.currentField(),
                 self.mField_alt.currentField(),
                 self.mField_file.currentField(),
-                self.mField_filters.currentField()
+                self.mField_filters.currentField(),
+                self.mField_gtr.currentField()
                )
 
     def get_dirlayer (self):
