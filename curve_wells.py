@@ -214,6 +214,7 @@ class GpWell ():
         sect_points = []
         prev_depth = 0
         x,y = self.x, self.y
+
         for record in self.depthlist:
             depth, zenit, azimut = record
             interval = depth - prev_depth
@@ -479,8 +480,10 @@ class GpGtr (objDepth):
         msgBox.setText(f"{y}<={y_begin}, {y_end}, {l_code}")
         msgBox.exec()
         """
-        # !!!! проверить список well_pnts
-        # начинается не с первой точки а со второй (на 10 метров ниже)!!!!
+        # начальное значение point_top если y_begin выше (больше) или равен
+        # началу скважины. если не задать начальное значение,
+        # то point_top будет не определен
+        point_top = well_pnts[index]
         while index < len(well_pnts) and y >= y_end:
             x,y = well_pnts[index]
             if y <= y_begin:
@@ -938,24 +941,6 @@ class geoSectionline ():
     # добавление скважин
     #-------------------------------------------------------------------------
     def add_depthwells (self, layer_wells, fields):
-        """
-        def addwell():
-             # создание объекта скважины
-             data_sect = (
-                           cut_geom.vertexAt(iprv),
-                           vertx_geom,
-                           cut_geom.vertexAt(inxt),
-                           cut_geom.distanceToVertex(icur)
-                         )
-
-             well_depth = GpWell(
-                                  (x,y), depthlist,
-                                  alt, wname,
-                                  filters, gtr_dict, data_sect
-                                )
-
-             self.depth_wells.append(well_depth)
-        """
 
         fname, falt, ffile, ffilters, fgtr = fields
         csvdir = os.path.dirname(layer_wells.source())
@@ -1000,7 +985,7 @@ class geoSectionline ():
             try:
                 csv_path = os.path.join(csvdir, csv)
                 with open (csv_path, 'r') as csvfile:
-                    depthlist = []
+                    depthlist = [(0,0,0)]
                     for line in csvfile:
                         records = line.split(";")
                         depth = int(records[0].strip())
@@ -1022,9 +1007,6 @@ class geoSectionline ():
                                                data_sect
                                               )
                                        )
-
-                #addwell()
-
             except FileNotFoundError:
                 try:
                     depth = float(csv.strip().replace(',','.'))
@@ -1041,7 +1023,6 @@ class geoSectionline ():
                                                    data_sect
                                                   )
                                            )
-                    #addwell()
                 except ValueError:
                     errlist += f"\n{wname} -  данные о глубине не число."
             except ValueError:
