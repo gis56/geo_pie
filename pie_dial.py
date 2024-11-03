@@ -256,7 +256,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
 
         # Настройка mLayer_srtm
         self.mLayer_srtm.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.mLayer_srtm.setAdditionalItems([" -не выбрано- "])
+        self.mLayer_srtm.setAllowEmptyLayer(True)
+        self.mLayer_srtm.setCurrentIndex(0)
 
         # Настройка поелй с изолиниями mLayer_izln
         self.mLayer_izln.setFilters(QgsMapLayerProxyModel.LineLayer)
@@ -276,9 +277,10 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         # Настройка типов полей атрибутов
         self.mField_well.setFilters(QgsFieldProxyModel.String)
         self.mField_file.setFilters(QgsFieldProxyModel.String)
-        self.mField_filters.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
         self.mField_gtr.setFilters(QgsFieldProxyModel.String)
+        self.mField_gtr.setAllowEmptyFieldName(True)
+
         self.mField_elev.setFilters(
                                     QgsFieldProxyModel.Int |
                                     QgsFieldProxyModel.Double |
@@ -301,7 +303,6 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.mField_well.setLayer(self.mLayer.currentLayer())
         self.mField_file.setLayer(self.mLayer.currentLayer())
         self.mField_alt.setLayer(self.mLayer.currentLayer())
-        self.mField_filters.setLayer(self.mLayer.currentLayer())
         self.mField_gtr.setLayer(self.mLayer.currentLayer())
 
     # Действия на активацию и выбор слоя изолиний
@@ -340,8 +341,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         if (
             self.mField_well.currentField() and
             self.mField_alt.currentField() and
-            self.mField_file.currentField() and
-            self.mField_gtr.currentField()
+            self.mField_file.currentField()
            ):
             self.done(QtWidgets.QDialog.Accepted)
         else:
@@ -372,7 +372,6 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
                 self.mField_well.currentField(),
                 self.mField_alt.currentField(),
                 self.mField_file.currentField(),
-                self.mField_filters.currentField(),
                 self.mField_gtr.currentField()
                )
 
