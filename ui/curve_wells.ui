@@ -9,12 +9,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>309</width>
-    <height>423</height>
+    <width>310</width>
+    <height>333</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Кривые скважины</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../icons/icon.png</normaloff>../icons/icon.png</iconset>
   </property>
   <property name="modal">
    <bool>false</bool>
@@ -22,53 +26,47 @@
   <widget class="QTabWidget" name="cut_tabWidget">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>60</y>
-     <width>291</width>
-     <height>311</height>
+     <x>8</x>
+     <y>8</y>
+     <width>294</width>
+     <height>281</height>
     </rect>
    </property>
    <property name="currentIndex">
     <number>0</number>
    </property>
-   <widget class="QWidget" name="relief_tab">
+   <widget class="QWidget" name="cut_tab">
     <attribute name="title">
-     <string>Рельеф</string>
+     <string>Разрез</string>
     </attribute>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="label_izln">
+      <widget class="QLabel" name="label_cut">
        <property name="text">
-        <string>Слой с изолиниями</string>
+        <string>Слой с линиями разреза &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QgsMapLayerComboBox" name="mLayer_izln"/>
+      <widget class="QgsMapLayerComboBox" name="mLayer_cut"/>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
-       <item>
-        <widget class="QLabel" name="label_elev">
-         <property name="text">
-          <string>Поле с высотами</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QgsFieldComboBox" name="mField_elev"/>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_strm">
+      <widget class="QCheckBox" name="chBox_cutfeats">
        <property name="text">
-        <string>Слой SRTM</string>
+        <string>Только выбранные объекты</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QgsMapLayerComboBox" name="mLayer_srtm"/>
+      <widget class="QLabel" name="label_cutname">
+       <property name="text">
+        <string>Поле с названиями разрезов
+(если не выбрано, используется id)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QgsFieldComboBox" name="mField_cutname"/>
      </item>
      <item>
       <widget class="QLabel" name="label_scale">
@@ -115,103 +113,125 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="wells_tab">
+   <widget class="QWidget" name="relief_tab">
     <attribute name="title">
-     <string>Скважины</string>
+     <string>Рельеф</string>
     </attribute>
-    <widget class="QLabel" name="label_layer">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>9</y>
-       <width>150</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Выберите слой скважин</string>
-     </property>
-    </widget>
-    <widget class="QgsMapLayerComboBox" name="mLayer">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>29</y>
-       <width>271</width>
-       <height>22</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="checkBox_Features">
-     <property name="geometry">
-      <rect>
-       <x>9</x>
-       <y>55</y>
-       <width>199</width>
-       <height>22</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Только выбранные объекты</string>
-     </property>
-    </widget>
     <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>90</y>
+       <y>10</y>
        <width>271</width>
-       <height>178</height>
+       <height>152</height>
       </rect>
      </property>
-     <layout class="QFormLayout" name="formLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_well">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_izln">
         <property name="text">
-         <string>Название скважины
-</string>
+         <string>Слой с изолиниями &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QgsFieldComboBox" name="mField_well"/>
+      <item>
+       <widget class="QgsMapLayerComboBox" name="mLayer_izln"/>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_file">
+      <item>
+       <widget class="QLabel" name="label_elev">
         <property name="text">
-         <string>Таблица данных CSV
-о кривизне скважины</string>
+         <string>Поле с высотами &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QgsFieldComboBox" name="mField_file"/>
+      <item>
+       <widget class="QgsFieldComboBox" name="mField_elev"/>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_alt">
+      <item>
+       <widget class="QLabel" name="label_strm">
         <property name="text">
-         <string>Абсолютная
-высота устья</string>
+         <string>Слой SRTM</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QgsFieldComboBox" name="mField_alt"/>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_gtr">
-        <property name="text">
-         <string>Паспорт скважины</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QgsFieldComboBox" name="mField_gtr"/>
+      <item>
+       <widget class="QgsMapLayerComboBox" name="mLayer_srtm"/>
       </item>
      </layout>
     </widget>
    </widget>
-   <widget class="QWidget" name="polygons_tab">
+   <widget class="QWidget" name="wells_tab">
+    <attribute name="title">
+     <string>Скважины</string>
+    </attribute>
+    <widget class="QWidget" name="layoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>9</y>
+       <width>271</width>
+       <height>201</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QLabel" name="label_layer">
+        <property name="text">
+         <string>Выберите слой скважин &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QgsMapLayerComboBox" name="mLayer"/>
+      </item>
+      <item>
+       <layout class="QFormLayout" name="formLayout">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_well">
+          <property name="text">
+           <string>Название скважины &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;&lt;br&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QgsFieldComboBox" name="mField_well"/>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_file">
+          <property name="text">
+           <string>Глубина скважины &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;&lt;br&gt;(или данные о кривизне)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QgsFieldComboBox" name="mField_file"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_alt">
+          <property name="text">
+           <string>Абсолютная&lt;br&gt;высота устья &lt;span style=&quot; color:#ed333b;&quot;&gt;*&lt;/span&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QgsFieldComboBox" name="mField_alt"/>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_gtr">
+          <property name="text">
+           <string>ГТН</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QgsFieldComboBox" name="mField_gtr"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="lnplg_tab">
     <attribute name="title">
      <string>Слои</string>
     </attribute>
@@ -221,25 +241,15 @@
        <x>10</x>
        <y>10</y>
        <width>271</width>
-       <height>191</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QgsMapLayerComboBox" name="mLayer_lnplg">
-     <property name="geometry">
-      <rect>
-       <x>12</x>
-       <y>210</y>
-       <width>160</width>
-       <height>27</height>
+       <height>141</height>
       </rect>
      </property>
     </widget>
     <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
-       <x>210</x>
-       <y>250</y>
+       <x>220</x>
+       <y>220</y>
        <width>64</width>
        <height>26</height>
       </rect>
@@ -275,24 +285,54 @@
       </item>
      </layout>
     </widget>
-    <widget class="QgsFieldComboBox" name="mField_lnplg">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
-       <x>180</x>
-       <y>210</y>
-       <width>101</width>
-       <height>27</height>
+       <x>10</x>
+       <y>160</y>
+       <width>271</width>
+       <height>50</height>
       </rect>
      </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <widget class="QLabel" name="label_lnplg_layer">
+          <property name="text">
+           <string>Слой</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QgsMapLayerComboBox" name="mLayer_lnplg"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <widget class="QLabel" name="label_lnplg_field">
+          <property name="text">
+           <string>Поле</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QgsFieldComboBox" name="mField_lnplg"/>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>390</y>
-     <width>276</width>
+     <x>130</x>
+     <y>300</y>
+     <width>166</width>
      <height>24</height>
     </rect>
    </property>
@@ -302,28 +342,6 @@
    <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
-  </widget>
-  <widget class="QWidget" name="layoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>4</y>
-     <width>291</width>
-     <height>48</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2">
-    <item>
-     <widget class="QLabel" name="label_cut">
-      <property name="text">
-       <string>Выберите слой с лиией разреза</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsMapLayerComboBox" name="mLayer_cut"/>
-    </item>
-   </layout>
   </widget>
  </widget>
  <customwidgets>
@@ -343,6 +361,25 @@
    <header>qgsscalewidget.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>cut_tabWidget</tabstop>
+  <tabstop>mLayer_cut</tabstop>
+  <tabstop>chBox_cutfeats</tabstop>
+  <tabstop>mField_cutname</tabstop>
+  <tabstop>mLayer_izln</tabstop>
+  <tabstop>mField_elev</tabstop>
+  <tabstop>mLayer_srtm</tabstop>
+  <tabstop>mLayer</tabstop>
+  <tabstop>mField_well</tabstop>
+  <tabstop>mField_file</tabstop>
+  <tabstop>mField_alt</tabstop>
+  <tabstop>mField_gtr</tabstop>
+  <tabstop>mLayer_lnplg</tabstop>
+  <tabstop>mField_lnplg</tabstop>
+  <tabstop>pButton_add</tabstop>
+  <tabstop>pButton_remove</tabstop>
+  <tabstop>list_lnplg</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
@@ -352,8 +389,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>295</x>
+     <y>300</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -368,8 +405,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>295</x>
+     <y>300</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>

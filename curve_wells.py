@@ -400,9 +400,10 @@ class GpGtr (objDepth):
 # Профиль рельефа строиться по srtm и по изолиниям
 #-----------------------------------------------------------------------------
 class GpProfiles (objCutline):
-    def __init__(self, feature, izln, srtm):
+    def __init__(self, feature, izln, srtm, cutname):
         self.geom_cutline = feature.geometry()
         self.ID = feature.id()
+        self.name = cutname
         self.sect_length = self.geom_cutline.length()
         # Расчитать шаг из длины линии разреза
         self.step_point = self.geom_cutline.length() // 100
@@ -483,7 +484,6 @@ class GpProfiles (objCutline):
     #   в свойствах класса
     #-------------------------------------------------------------------------
     def get_profils (self, scale):
-        profil_name = f"sect_{self.ID}"
 
         fields = [QgsField("name",QVariant.String),
                   QgsField("type",QVariant.String),
@@ -494,15 +494,15 @@ class GpProfiles (objCutline):
 
         if self.sectpnt_srtm:
             geom = self.get_srtm_geom(scale)
-            attr = [profil_name, "srtm", self.sect_length, geom.length()]
+            attr = [self.name, "srtm", self.sect_length, geom.length()]
             feats.append((geom,attr))
         if self.sectpnt_izln:
             geom = self.get_izln_geom(scale)
-            attr = [profil_name, "izln", self.sect_length, geom.length()]
+            attr = [self.name, "izln", self.sect_length, geom.length()]
             feats.append((geom, attr))
         else: return False
 
-        return feats, f"profil-{profil_name}", fields, "LineString", False
+        return feats, f"profil-{self.name}", fields, "LineString", False
 #-----------------------------------------------------------------------------
 #     GpProfiles
 #-----------------------------------------------------------------------------
@@ -519,18 +519,21 @@ class GpProfiles (objCutline):
 # создать геометрии боковых шкал, нулевой линии (если она есть)
 # подумать над созданием линии пересечения разоезов
 #-----------------------------------------------------------------------------
-class rulerSection (objCutline):
-    #def __init__ (self, ID, length, alt_min, alt_max, cutscale, intersect):
-    def __init__ (self, alt_min, alt_max, cutscale, feat_cutline, cuts_layer):
-        #self.intersect = intersect
-        self.intersect = self.intersect_lines(feat_cutline, cuts_layer)
+class GpRuler (objCutline):
+    def __init__ (self, alt_min, alt_max, cutscale,
+                  feat_cutline, feats_cut, fname):
+        self.intersect = self.cut_intersect_ln(
+                                                feat_cutline,
+                                                feats_cut,
+                                                fname
+                                              )
         self.cm_step = cutscale * self.coef_unit()
         self.alt_min = math.floor(alt_min/self.cm_step)*self.cm_step
         self.alt_max = math.ceil(alt_max/self.cm_step)*self.cm_step
-        self.length = feat_cutline.geometry().length()
-        #self.length = length
-        #self.name = ID
-        self.name = feat_cutline.id()
+        self.geom_cutline = feat_cutline.geometry()
+        self.length = self.geom_cutline.length()
+        if fname: self.name = feat_cutline[fname]
+        else: self.name = feat_cutline.id()
 
     def coef_unit (self):
         unit = QgsProject.instance().crs().mapUnits()
@@ -540,6 +543,7 @@ class rulerSection (objCutline):
         elif unit == Qgis.DistanceUnit.Kilometers: return 0.0001
         else: return -1
 
+    """
     def intersect_lines(self, feat_cutline, cuts_layer):
         geom_cut = feat_cutline.geometry()
         cuts_layer.startEditing()
@@ -548,6 +552,40 @@ class rulerSection (objCutline):
         cuts_layer.rollBack()
 
         return intersect_pnt
+    """
+    # ------------------------------------------------------------------------
+    #   переопределения функции пересечения линии разреза с линиями на карте.
+    #   адаптпция для поиска пересечения разрезов
+    # ------------------------------------------------------------------------
+    def cut_intersect_ln (self, feat_cutline, feats_cut, fname):
+        feats = feats_cut.copy()
+        feats.remove(feat_cutline)
+        geom_cutline = feat_cutline.geometry()
+        cutpoints = []
+        x_beg = 0
+        sectvert_iter = geom_cutline.vertices()
+        sectvert_beg = next(sectvert_iter)
+        for sectvert_end in sectvert_iter:
+            interval_geom = QgsGeometry.fromPolyline([sectvert_beg,
+                                                      sectvert_end])
+            # Перебор изолиний пересакающих область текущего отрезка
+            for featline in feats:
+                featline_geom = featline.geometry()
+                intersect_geom = featline_geom.intersection(interval_geom)
+
+                if not intersect_geom.isEmpty():
+                    for  part_geom in intersect_geom.asGeometryCollection() :
+                        dist = part_geom.distance(
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
+                        if fname: cutname = featline[fname]
+                        else: cutname = featline.id()
+                        cutpoints.append((x_beg+dist, cutname))
+            # Наращивание расстояние от начала линии разреза
+            x_beg += interval_geom.length()
+            sectvert_beg = sectvert_end
+
+        return  sorted(cutpoints, key=lambda x: x[0])
 
     def get_ruler(self, scale=1):
         # линии шкалы
@@ -581,31 +619,40 @@ class rulerSection (objCutline):
             geom = QgsGeometry.fromPolylineXY(points)
             attr = ["null", f"{self.name}"]
             ln_feats.append((geom, attr))
+
         # пересечение разрезов
         for intercut in self.intersect:
-            x, name, ID = intercut
+            x, name = intercut
             points = [QgsPointXY(x, self.alt_min*scale),
                       QgsPointXY(x, self.alt_max*scale)]
             geom = QgsGeometry.fromPolylineXY(points)
-            attr = ["intersect", f"{self.name} - {ID}"]
+            attr = ["intersect", f"{self.name} - {name}"]
             ln_feats.append((geom, attr))
+
         # точки шкалы
         pnt_feats = []
         i = self.alt_min
         while i <= self.alt_max:
             point = QgsPointXY(0, i*scale)
             pnt_feats.append((QgsGeometry.fromPointXY(point),
-                              ['left', i]))
+                              ['left', i, NULL]))
             point = QgsPointXY(self.length, i*scale)
             pnt_feats.append((QgsGeometry.fromPointXY(point),
-                              ['right', i]))
+                              ['right', i, NULL]))
             i += self.cm_step
+
+        for i, v in  enumerate(self.geom_cutline.vertices()):
+            x = self.geom_cutline.distanceToVertex(i)
+            point = QgsPointXY(x, self.alt_max*scale)
+            pnt_feats.append((QgsGeometry.fromPointXY(point),
+                              ['cutpoint', x, f'{self.name}{i}']))
 
         ln_fields = [QgsField("type",QVariant.String),
                       QgsField("name", QVariant.String)]
 
         pnt_fields = [QgsField("type",QVariant.String),
-                      QgsField("value", QVariant.Double)]
+                      QgsField("value", QVariant.Double),
+                      QgsField("name", QVariant.String)]
 
         return ((ln_feats, f"ruler_ln-{self.name}", ln_fields,
                  "LineString", False),
@@ -619,9 +666,9 @@ class rulerSection (objCutline):
 #     GpAges - Класс пересечения возрастов с линией разреза
 #-----------------------------------------------------------------------------
 class GpAges(objCutline):
-    def __init__ (self, feature, data, extrem):
+    def __init__ (self, feature, data, extrem, cutname):
         self.geom = feature.geometry()
-        self.cutname = feature.id()
+        self.cutname = f'{cutname}'
         self.lines = self.add(data)
         self.extrem = extrem
         self.ftype, self.fname, self.lname = self.type_field(*data)
@@ -654,7 +701,7 @@ class GpAges(objCutline):
                 feat.append((geom, attr))
 
             fields = [
-                      QgsField("idcut",QVariant.Int),
+                      QgsField("cutname",QVariant.String),
                       QgsField(self.fname, self.ftype)
                      ]
 
@@ -665,9 +712,9 @@ class GpAges(objCutline):
 #     GpRivers - Класс пересечения рек с линией разреза
 #-----------------------------------------------------------------------------
 class GpRivers(objCutline):
-    def __init__(self, feature, rivers):
+    def __init__(self, feature, rivers, cutname):
         self.geom = feature.geometry()
-        self.cutname = feature.id()
+        self.cutname = f'{cutname}'
         self.points = self.add(rivers)
         self.ftype, self.fname, self.lname = self.type_field(*rivers)
 
@@ -690,7 +737,7 @@ class GpRivers(objCutline):
                 feat.append((geom, attr))
 
             fields = [
-                      QgsField("idcut",QVariant.Int),
+                      QgsField("cutname",QVariant.String),
                       QgsField(self.fname, self.ftype)
                      ]
 
@@ -703,9 +750,11 @@ class GpRivers(objCutline):
 # GpWell.
 #-----------------------------------------------------------------------------
 class geoSectionline ():
-    def __init__(self, feature):
+    def __init__(self, feature, fcutname):
         self.feat_cutline = feature
-        self.Id = feature.id()
+        self.fname = fcutname
+        if fcutname: self.name = feature[fcutname]
+        else: self.name = feature.id()
         self.length = feature.geometry().length()
         self.depth_wells = []
         # список глубин всех вынесенных на разрез скважин
@@ -720,21 +769,22 @@ class geoSectionline ():
     def add_profile(self, izln, srtm):
 
         # создание объекта профиля
-        self.profiline = GpProfiles(self.feat_cutline, izln, srtm)
+        self.profiline = GpProfiles(self.feat_cutline, izln, srtm, self.name)
 
     #-------------------------------------------------------------------------
     # добавление линейки
     #-------------------------------------------------------------------------
-    def add_ruler (self, cuts_layer, cutscale):
+    def add_ruler (self, feats_cut, cutscale):
         min_alt, max_alt = self.profiline.get_extreme()
         extreme = [min_alt, max_alt] + self.well_depths
         min_alt = min(extreme)
         max_alt = max(extreme)
         # создание объекта линейки
-        self.ruler = rulerSection(
-                                  min_alt, max_alt, cutscale,
-                                  self.feat_cutline, cuts_layer
-                                 )
+        self.ruler = GpRuler(
+                             min_alt, max_alt, cutscale,
+                             self.feat_cutline, feats_cut,
+                             self.fname
+                            )
 
     #-------------------------------------------------------------------------
     # добавление слоев пересечения в массивы линий и полигонов
@@ -743,12 +793,18 @@ class geoSectionline ():
         for data in lnplg:
             layer, field = data
             if layer.geometryType() == QgsWkbTypes.LineGeometry:
-                self.ln_layer.append(GpRivers(self.feat_cutline, data))
+                self.ln_layer.append(GpRivers(
+                                              self.feat_cutline,
+                                              data,
+                                              self.name
+                                             )
+                                    )
             elif layer.geometryType() == QgsWkbTypes.PolygonGeometry:
                 self.plg_layer.append(GpAges(
                                              self.feat_cutline,
                                              data,
-                                             self.profiline.get_extreme()
+                                             self.profiline.get_extreme(),
+                                             self.name
                                              )
                                     )
 
@@ -885,7 +941,6 @@ class geoSectionline ():
     #-------------------------------------------------------------------------
     def get_wells (self, scale):
         # Поля атрибутов изогнутых скважин
-        profil_name = self.Id
         fields = [QgsField("name",QVariant.String),
                   QgsField("depth",QVariant.Double),
                   QgsField("lcode", QVariant.Bool)]
@@ -894,14 +949,13 @@ class geoSectionline ():
             geom, attr = well.get_sectionLine(scale)
             feats.append((geom, attr))
 
-        return feats, f"wells-{profil_name}", fields, "LineString", False
+        return feats, f"wells_{self.name}", fields, "LineString", False
 
     # ------------------------------------------------------------------------
     # передача данных паспорта скважин
     # в ообъектах скважин хранится словарь со списками объектов gtr
     # ------------------------------------------------------------------------
     def get_gtr (self, scale):
-        profil_name = self.Id
         fields = [QgsField("name",QVariant.String),
                   QgsField("lcode",QVariant.Int)]
         key_list = []
@@ -921,7 +975,7 @@ class geoSectionline ():
                         if objs: feads.append(objs.get_gtr(scale))
                     data_list.append((
                                       feads,
-                                      f"{key}-{profil_name}",
+                                      f"{key}_{self.name}",
                                       fields,
                                       "LineString",
                                       False
@@ -960,7 +1014,7 @@ def cut_curvwell():
     result = dialog.run()
     if result:
         wlayer = dialog.get_layerwells()
-        wfields = dialog.get_fieldwells()
+        fcutname, *wfields = dialog.get_fieldwells()
         srtm = dialog.get_strm()
         izln = dialog.get_izline()
         lnplg = dialog.get_lnplg()
@@ -972,13 +1026,13 @@ def cut_curvwell():
         errlist = ""
         for cfeat in  dialog.get_featcut():
             # создание объекта разреза
-            cline = geoSectionline(cfeat)
+            cline = geoSectionline(cfeat, fcutname)
             # добавление скважин
             errlist += cline.add_depthwells(wlayer, wfields)
             # добавление профилей разреза
             cline.add_profile(izln, srtm)
             # добавление линейки
-            cline.add_ruler(dialog.get_layercut(), cutscale)
+            cline.add_ruler(dialog.get_featcut(), cutscale)
             # добавление слоев линий и полигонов
             cline.add_lnplg(lnplg)
             # добавление объекта разреза в список
@@ -987,7 +1041,7 @@ def cut_curvwell():
         path = os.path.dirname(__file__)
         maingroup = creategroup("Разрезы", True)
         for cut in cut_lines:
-            group = maingroup.addGroup(f"Разрез {cut.Id}")
+            group = maingroup.addGroup(f"Разрез {cut.name}")
 
             # профили разреза
             layer_data =  cut.profiline.get_profils(scale)

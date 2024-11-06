@@ -253,6 +253,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
 
         # Настройка mLayer_cut (разрез)
         self.mLayer_cut.setFilters(QgsMapLayerProxyModel.LineLayer)
+        self.mLayer_cut.activated.connect(self.activ_mLayer_cut)
+        self.mLayer_cut.currentIndexChanged.connect(self.activ_mLayer_cut)
 
         # Настройка mLayer_srtm
         self.mLayer_srtm.setFilters(QgsMapLayerProxyModel.RasterLayer)
@@ -275,6 +277,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.pButton_remove.clicked.connect(self.remove_click)
 
         # Настройка типов полей атрибутов
+        self.mField_cutname.setFilters(QgsFieldProxyModel.String)
+        self.mField_cutname.setAllowEmptyFieldName(True)
         self.mField_well.setFilters(QgsFieldProxyModel.String)
         self.mField_file.setFilters(QgsFieldProxyModel.String)
         self.mField_alt.setFilters(QgsFieldProxyModel.Double)
@@ -294,8 +298,15 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         # Настройка масштабов
         self.map_mScale.setScale(100000)
         self.cut_mScale.setScale(25000)
-        # Инициализация чекбокса выбранных скважин
-        #self.checkBox_Features.setChecked(False)
+
+    # Действия на активацию и выбор слоя с линиями разреза
+    def activ_mLayer_cut (self):
+        self.mField_cutname.setLayer(self.mLayer_cut.currentLayer())
+        layer = self.mLayer_cut.currentLayer()
+        if layer and layer.selectedFeatures() :
+            self.chBox_cutfeats.setEnabled(True)
+        else :
+            self.chBox_cutfeats.setEnabled(False)
 
     # Действия на активацию и выбор слоя скважин в mLayer
     def activ_mLayer (self):
@@ -328,6 +339,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
 
     # Подготовка и запуск формы диалога
     def run(self):
+        self.activ_mLayer_cut()
         self.activ_mLayer()
         self.activ_mLayer_izln()
         self.activ_mLayer_lnplg()
@@ -365,10 +377,18 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         return self.mLayer.currentLayer().selectedFeatures()
 
     def get_featcut (self):
-        return [feat for feat in self.mLayer_cut.currentLayer().getFeatures()]
+        layer = self.mLayer_cut.currentLayer()
+        if self.chBox_cutfeats.isChecked() :
+            features = layer.selectedFeatures()
+        else :
+            features=[feature for feature in layer.getFeatures()]
+        return features
+
+        #return [feat for feat in self.mLayer_cut.currentLayer().getFeatures()]
 
     def get_fieldwells (self):
         return (
+                self.mField_cutname.currentField(),
                 self.mField_well.currentField(),
                 self.mField_alt.currentField(),
                 self.mField_file.currentField(),
