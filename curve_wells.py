@@ -123,6 +123,17 @@ class objCutline ():
         if field_num == 10: return QVariant.String, field, lname
         if field_num == 2 or field_num == 4: return QVariant.Int, field, lname
 
+    # ------------------------------------------------------------------------
+    #   вертикальные координаты (по  y) для отображения пересечений
+    #   на разрезе
+    # ------------------------------------------------------------------------
+    def y_view (self, extrem):
+        y1, y2 = extrem
+        buff = (y2-y1)/3
+        y1 -= buff
+        y2 += buff
+        return y1, y2
+
 # ----------------------------------------------------------------------------
 # Класс робительский для классов описывающих скважины по глубине:
 # фильтры, возроста, литология
@@ -686,10 +697,9 @@ class GpAges(objCutline):
 
         if self.lines:
             feat = []
+            y1, y2 = self.y_view(self.extrem)
             for line in self.lines:
                 x1, x2, lcode =line
-                y1, y2 = self.extrem
-                y1 -= (y2-y1)/3
                 geom = QgsGeometry.fromPolygonXY([[
                                                   QgsPointXY(x1,y1*scale),
                                                   QgsPointXY(x1,y2*scale),
@@ -712,9 +722,10 @@ class GpAges(objCutline):
 #     GpRivers - Класс пересечения рек с линией разреза
 #-----------------------------------------------------------------------------
 class GpRivers(objCutline):
-    def __init__(self, feature, rivers, cutname):
+    def __init__(self, feature, rivers, extrem, cutname):
         self.geom = feature.geometry()
         self.cutname = f'{cutname}'
+        self.extrem = extrem
         self.points = self.add(rivers)
         self.ftype, self.fname, self.lname = self.type_field(*rivers)
 
@@ -729,10 +740,12 @@ class GpRivers(objCutline):
     def get(self, scale=1):
         if self.points:
             feat = []
+            y1, y2 = self.y_view(self.extrem)
             for point in self.points:
                 x, name = point
                 y = 0
-                geom = QgsGeometry.fromPointXY(QgsPointXY(x,y*scale))
+                geom = QgsGeometry.fromPolylineXY([QgsPointXY(x,y1*scale),
+                                                   QgsPointXY(x,y2*scale)])
                 attr = [self.cutname, name]
                 feat.append((geom, attr))
 
@@ -742,7 +755,8 @@ class GpRivers(objCutline):
                      ]
 
              #QgsField("name", QVariant.String)
-            return (feat, f"{self.lname}-{self.cutname}",fields,"Point",False)
+            return (feat, f"{self.lname}-{self.cutname}",fields,
+                    "LineString",False)
         else: return False
 #-----------------------------------------------------------------------------
 # Класс линии разреза. Мега большой класс с информацией по каждой линии
@@ -796,6 +810,7 @@ class geoSectionline ():
                 self.ln_layer.append(GpRivers(
                                               self.feat_cutline,
                                               data,
+                                              self.profiline.get_extreme(),
                                               self.name
                                              )
                                     )
