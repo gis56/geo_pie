@@ -26,4 +26,4 @@
 
 .. toctree::
 
-.. matrix
+    matrix
