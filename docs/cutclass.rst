@@ -3,7 +3,7 @@
 =====================
 
 :any:`GpPolycut`
-
+:any:`GpRivers`
 
 .. py:class:: GpPolycut[objCutline](feature, data, extrem, cutname)
 
