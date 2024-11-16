@@ -5,7 +5,7 @@
 :any:`GpPolycut`
 :any:`GpRivers`
 
-.. py:class:: GpPolycut[objCutline](feature, data, extrem, cutname)
+.. py:class:: GpPolycut [objCutline](feature, data, extrem, cutname)
 
    :param QgsFeature feature: Объект линии разреза;
    :type feature: QgsFeature_ 
