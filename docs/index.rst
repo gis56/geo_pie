@@ -32,3 +32,4 @@
    matrix
    csvshape
    zso
+   cutclass

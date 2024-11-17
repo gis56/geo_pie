@@ -27,7 +27,7 @@
 .. rubric:: Описание классов
 
 
-.. toctree::
+..  toctree::
 
-   cutclass
+..   cutclass
 
