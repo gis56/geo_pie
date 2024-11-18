@@ -34,7 +34,8 @@ from .utilib import *
 # например: процедура пересечения линий
 # ----------------------------------------------------------------------------
 class objCutline ():
-    def cut_intersect_ln (self, geom_cutline, lines_layer, field):
+    def cut_intersect_ln (self, feat_cutline, lines_layer, field):
+        geom_cutline = feat_cutline.geometry()
         cutpoints = []
         x_beg = 0
         sectvert_iter = geom_cutline.vertices()
@@ -56,8 +57,9 @@ class objCutline ():
                         dist = part_geom.distance(
                                           QgsGeometry.fromPoint(sectvert_beg)
                                          )
-                        ID = featline.id()
-                        cutpoints.append((x_beg+dist, featline[field], ID))
+                        #ID = featline.id()
+                        #cutpoints.append((x_beg+dist, featline[field], ID))
+                        cutpoints.append((x_beg+dist, featline[field]))
             # Наращивание расстояние от начала линии разреза
             x_beg += interval_geom.length()
             sectvert_beg = sectvert_end
@@ -67,7 +69,8 @@ class objCutline ():
     #-------------------------------------------------------------------------
     # Пересечение линии разреза с полигонами
     # ------------------------------------------------------------------------
-    def cut_intersect_plg (self, geom_cutline, polygons_layer, field):
+    def cut_intersect_plg (self, feat_cutline, polygons_layer, field):
+        geom_cutline = feat_cutline.geometry()
         cutpoints = []
         x_beg = 0
         sectvert_iter = geom_cutline.vertices()
@@ -88,31 +91,27 @@ class objCutline ():
                     for  part_geom in intersect_geom.asGeometryCollection():
                         v1 = part_geom.vertexAt(0)
                         v2 = part_geom.vertexAt(1)
-                        x1 = v1.distance(sectvert_beg)+x_beg
-                        x2 = v2.distance(sectvert_beg)+x_beg
-                        if x1 > x2: x1, x2 = x2, x1
-                        cutpoints.append((x1, x2, feat[field]))
+                        if not v2.isEmpty():
+                            x1 = v1.distance(sectvert_beg)+x_beg
+                            x2 = v2.distance(sectvert_beg)+x_beg
+                            if x1 > x2: x1, x2 = x2, x1
+                            cutpoints.append((float(x1),float(x2),feat[field]))
             # Наращивание расстояние от начала линии разреза
             x_beg += interval_geom.length()
             sectvert_beg = sectvert_end
+        sort_points = sorted(cutpoints, key=lambda x: x[0])
 
-        return  sorted(cutpoints, key=lambda x: x[0])
-
-    #-------------------------------------------------------------------------
-    # Объединение соседних полигонов с одинаковым признаком
-    #-------------------------------------------------------------------------
-    def union_intersect (self, data_list):
-
+        # Объединение соседних полигонов с одинаковым признаком
         index = 0
-        while index < len(data_list)-2:
-            x1, x2, name = data_list[index]
-            n1, n2, next_name = data_list[index+1]
+        while index < len(sort_points)-1:
+            x1, x2, name = sort_points[index]
+            n1, n2, next_name = sort_points[index+1]
             if name == next_name:
-                data_list[index+1] = (x1, n2, name)
-                data_list.pop(index)
-            index += 1
+                sort_points[index+1] = (x1, n2, name)
+                sort_points.pop(index)
+            else: index += 1
 
-        return data_list
+        return sort_points
 
     # ------------------------------------------------------------------------
     # Определение типа слоя и типа поля атрибутов
@@ -413,6 +412,7 @@ class GpGtr (objDepth):
 class GpProfiles (objCutline):
     def __init__(self, feature, izln, srtm, cutname):
         self.geom_cutline = feature.geometry()
+        self.feat = feature
         self.ID = feature.id()
         self.name = cutname
         self.sect_length = self.geom_cutline.length()
@@ -425,10 +425,12 @@ class GpProfiles (objCutline):
         self.sectpnt_izln = self.add_izln(izln)
 
     def add_izln(self, izline):
-        verts = self.cut_intersect_ln(self.geom_cutline, *izline)
+        verts = self.cut_intersect_ln(self.feat, *izline)
+        #verts = self.cut_intersect_ln(self.geom_cutline, *izline)
         izline_points = []
         for vert in verts:
-            x, y, ID = vert
+            x, y = vert
+            #x, y, ID = vert
             izline_points.append((float(x), float(y)))
         self.alt_extrem.extend([
                         min(izline_points, key=lambda y: y[1])[1],
@@ -674,30 +676,20 @@ class GpRuler (objCutline):
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-#     GpAges - Класс пересечения возрастов с линией разреза
+#     GpPolycut - Класс пересечения возрастов с линией разреза
 #-----------------------------------------------------------------------------
-class GpAges(objCutline):
-    def __init__ (self, feature, data, extrem, cutname):
-        self.geom = feature.geometry()
+class GpPolycut(objCutline):
+    def __init__ (self, feature, polygons, extrem, cutname):
         self.cutname = f'{cutname}'
-        self.lines = self.add(data)
-        self.extrem = extrem
-        self.ftype, self.fname, self.lname = self.type_field(*data)
-
-    def add(self, data):
-        inters = self.cut_intersect_plg(self.geom, *data)
-        unions = self.union_intersect(inters)
-        lines = []
-        for line in unions:
-            x1, x2, lcode = line
-            lines.append((float(x1), float(x2), lcode))
-        return lines
+        self.lines = self.cut_intersect_plg(feature, *polygons)
+        self.extrem = self.y_view(extrem)
+        self.ftype, self.fname, self.lname = self.type_field(*polygons)
 
     def get(self, profil_geom, scale=1):
 
         if self.lines:
             feat = []
-            y1, y2 = self.y_view(self.extrem)
+            y1, y2 = self.extrem
             for line in self.lines:
                 x1, x2, lcode =line
                 geom = QgsGeometry.fromPolygonXY([[
@@ -719,28 +711,19 @@ class GpAges(objCutline):
         else: return False
 
 #-----------------------------------------------------------------------------
-#     GpRivers - Класс пересечения рек с линией разреза
+#     GpLinecut - Класс пересечения рек с линией разреза
 #-----------------------------------------------------------------------------
-class GpRivers(objCutline):
-    def __init__(self, feature, rivers, extrem, cutname):
-        self.geom = feature.geometry()
+class GpLinecut(objCutline):
+    def __init__(self, feature, lines, extrem, cutname):
         self.cutname = f'{cutname}'
-        self.extrem = extrem
-        self.points = self.add(rivers)
-        self.ftype, self.fname, self.lname = self.type_field(*rivers)
-
-    def add(self, rivers):
-        verts = self.cut_intersect_ln(self.geom, *rivers)
-        points = []
-        for vert in verts:
-            x, name, ID = vert
-            points.append((float(x), name))
-        return points
+        self.extrem = self.y_view(extrem)
+        self.points = self.cut_intersect_ln(feature, *lines)
+        self.ftype, self.fname, self.lname = self.type_field(*lines)
 
     def get(self, scale=1):
         if self.points:
             feat = []
-            y1, y2 = self.y_view(self.extrem)
+            y1, y2 = self.extrem
             for point in self.points:
                 x, name = point
                 y = 0
@@ -754,7 +737,6 @@ class GpRivers(objCutline):
                       QgsField(self.fname, self.ftype)
                      ]
 
-             #QgsField("name", QVariant.String)
             return (feat, f"{self.lname}-{self.cutname}",fields,
                     "LineString",False)
         else: return False
@@ -807,7 +789,7 @@ class geoSectionline ():
         for data in lnplg:
             layer, field = data
             if layer.geometryType() == QgsWkbTypes.LineGeometry:
-                self.ln_layer.append(GpRivers(
+                self.ln_layer.append(GpLinecut(
                                               self.feat_cutline,
                                               data,
                                               self.profiline.get_extreme(),
@@ -815,7 +797,7 @@ class geoSectionline ():
                                              )
                                     )
             elif layer.geometryType() == QgsWkbTypes.PolygonGeometry:
-                self.plg_layer.append(GpAges(
+                self.plg_layer.append(GpPolycut(
                                              self.feat_cutline,
                                              data,
                                              self.profiline.get_extreme(),
