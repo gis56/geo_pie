@@ -29,7 +29,13 @@ language = 'ru'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+html_show_sourcelink = False
 html_theme = 'sphinx_rtd_theme'
 #html_theme = 'furo'
 #html_theme = 'alabaster'
 html_static_path = ['_static']
+html_logo = 'image/pie.png'
+#html_theme_options = {
+#    'logo_only': True,
+#    'display_version': False,
+#}
