@@ -164,6 +164,7 @@ class SaveAttributes:
 
     def initGui(self):
         """Создайте элементы меню и значки панели инструментов внутри QGIS GUI."""
+        """
         icon_path = self.plugin_dir + '/icons/wells.png'
         self.add_action(
             icon_path,
@@ -178,11 +179,19 @@ class SaveAttributes:
             callback=self.profile,
             parent=self.iface.mainWindow())
         # will be set False in run()
+        """
+
+        icon_path = self.plugin_dir + '/icons/icon.png'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Конструктор разреза'),
+            callback=self.curvwells,
+            parent=self.iface.mainWindow())
 
         icon_path = self.plugin_dir + '/icons/matrx.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Матрица расстояний obj'),
+            text=self.tr(u'Матрица расстояний'),
             callback=self.matrix,
             parent=self.iface.mainWindow())
 
@@ -191,7 +200,7 @@ class SaveAttributes:
         icon_path = self.plugin_dir + '/icons/csv_shape.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Точкии из .csv'),
+            text=self.tr(u'Точки из .csv'),
             callback=self.pointcsv,
             parent=self.iface.mainWindow())
 
@@ -200,13 +209,6 @@ class SaveAttributes:
             icon_path,
             text=self.tr(u'Зоны ЗСО'),
             callback=self.zsozone,
-            parent=self.iface.mainWindow())
-
-        icon_path = self.plugin_dir + '/icons/icon.png'
-        self.add_action(
-            icon_path,
-            text=self.tr(u'Изогнутые скважины'),
-            callback=self.curvwells,
             parent=self.iface.mainWindow())
 
 
@@ -221,7 +223,7 @@ class SaveAttributes:
 
     """
         Постороение профиля разреза
-    """
+
     def profile(self):
         # Создать диалог с элементами (после перевода) и сохранить ссылку
         # Создавайте GUI только ОДИН РАЗ в обратном вызове, чтобы он
@@ -232,6 +234,7 @@ class SaveAttributes:
         out_profile = OutcropProfile()
         out_profile.run()
         del out_profile
+    """
 
     """
         Расчет расстояний между точечными объектами
@@ -260,6 +263,6 @@ class SaveAttributes:
         self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
     """
         Конструкция скважин
-    """
     def run(self):
         pass
+    """

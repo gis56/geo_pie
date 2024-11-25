@@ -14,11 +14,14 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Кривые скважины</string>
+   <string>Конструктор разрезов</string>
   </property>
   <property name="windowIcon">
    <iconset>
     <normaloff>../icons/icon.png</normaloff>../icons/icon.png</iconset>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>false</bool>
   </property>
   <property name="modal">
    <bool>false</bool>
@@ -248,9 +251,9 @@
     <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
-       <x>220</x>
+       <x>90</x>
        <y>220</y>
-       <width>64</width>
+       <width>191</width>
        <height>26</height>
       </rect>
      </property>
@@ -258,7 +261,7 @@
       <item>
        <widget class="QPushButton" name="pButton_add">
         <property name="text">
-         <string/>
+         <string>Добавить</string>
         </property>
         <property name="icon">
          <iconset theme="add">
@@ -275,7 +278,7 @@
       <item>
        <widget class="QPushButton" name="pButton_remove">
         <property name="text">
-         <string/>
+         <string>Удалить</string>
         </property>
         <property name="icon">
          <iconset theme="remove">
@@ -376,8 +379,6 @@
   <tabstop>mField_gtr</tabstop>
   <tabstop>mLayer_lnplg</tabstop>
   <tabstop>mField_lnplg</tabstop>
-  <tabstop>pButton_add</tabstop>
-  <tabstop>pButton_remove</tabstop>
   <tabstop>list_lnplg</tabstop>
  </tabstops>
  <resources/>

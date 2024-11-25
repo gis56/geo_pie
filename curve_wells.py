@@ -346,6 +346,9 @@ class GpGtr (objDepth):
     #-------------------------------------------------------------------------
     def set_gtr(self, tupl, well_pnts):
         y_begin, y_end, l_code = tupl
+        # на случай если данные будут по случайности перепутаны местами
+        if y_begin < y_end: y_begin, y_end = y_end, y_begin
+
         filter_pnts = []
         index = 0
         x,y = well_pnts[index]
@@ -1079,7 +1082,7 @@ def cut_curvwell():
                 group.addLayer(layer)
 
         txt = f'Результат в группе "Разрезы". {errlist}'
-    else: txt = "Отмена."
+    else: txt = "Галя, у нас отмена."
     del dialog
 
     return Qgis.Success, txt, "Завершено"
