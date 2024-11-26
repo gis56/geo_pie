@@ -22,8 +22,9 @@ from qgis.core import (
                        QgsPoint,
                        QgsFeatureRequest,
                        QgsWkbTypes,
-                       NULL
-                      )
+                       NULL,
+                       QgsUnitTypes
+)
 from .pie_dial import formCurveWells
 
 from .utilib import *
@@ -55,8 +56,15 @@ class objCutline ():
                 if not intersect_geom.isEmpty():
                     for  part_geom in intersect_geom.asGeometryCollection() :
                         dist = part_geom.distance(
-                                          QgsGeometry.fromPoint(sectvert_beg)
-                                         )
+                                          QgsGeometry.fromPointXY
+                                                     (
+                                                      QgsPointXY(sectvert_beg)
+                                          )
+                        )
+                        # В винде почему-то нет fromPoint
+                        #dist = part_geom.distance(
+                        #                  QgsGeometry.fromPoint(sectvert_beg)
+                        #                 )
                         #ID = featline.id()
                         #cutpoints.append((x_beg+dist, featline[field], ID))
                         cutpoints.append((x_beg+dist, featline[field]))
@@ -553,11 +561,21 @@ class GpRuler (objCutline):
 
     def coef_unit (self):
         unit = QgsProject.instance().crs().mapUnits()
+        if unit == QgsUnitTypes.DistanceUnit.Millimeters: return 10
+        elif unit == QgsUnitTypes.DistanceUnit.Centimeters: return 1
+        elif unit == QgsUnitTypes.DistanceUnit.Meters: return 0.01
+        elif unit == QgsUnitTypes.DistanceUni.Kilometers: return 0.0001
+        else: return -1
+
+    """ Пусть пока будет в ожидании пока до винды версия 3.30 дойдет
+    def coef_unit (self):
+        unit = QgsProject.instance().crs().mapUnits()
         if unit == Qgis.DistanceUnit.Millimeters: return 10
         elif unit == Qgis.DistanceUnit.Centimeters: return 1
         elif unit == Qgis.DistanceUnit.Meters: return 0.01
         elif unit == Qgis.DistanceUnit.Kilometers: return 0.0001
         else: return -1
+    """
 
     """
     def intersect_lines(self, feat_cutline, cuts_layer):
@@ -973,13 +991,15 @@ class geoSectionline ():
                 if gtr:
                     for objs in gtr:
                         if objs: feads.append(objs.get_gtr(scale))
-                    data_list.append((
-                                      feads,
-                                      f"{key}_{self.name}",
-                                      fields,
-                                      "LineString",
-                                      False
-                                    ))
+            data_list.append(
+                     (
+                      feads,
+                      f"{key}_{self.name}",
+                      fields,
+                      "LineString",
+                      False
+                     )
+            )
         return data_list
     # ------------------------------------------------------------------------
     # передача геометрий линейных слоев
