@@ -561,10 +561,10 @@ class GpRuler (objCutline):
 
     def coef_unit (self):
         unit = QgsProject.instance().crs().mapUnits()
-        if unit == QgsUnitTypes.DistanceUnit.Millimeters: return 10
-        elif unit == QgsUnitTypes.DistanceUnit.Centimeters: return 1
-        elif unit == QgsUnitTypes.DistanceUnit.Meters: return 0.01
-        elif unit == QgsUnitTypes.DistanceUni.Kilometers: return 0.0001
+        if unit == QgsUnitTypes.DistanceMillimeters: return 10
+        elif unit == QgsUnitTypes.DistanceCentimeters: return 1
+        elif unit == QgsUnitTypes.DistanceMeters: return 0.01
+        elif unit == QgsUnitTypes.DistanceKilometers: return 0.0001
         else: return -1
 
     """ Пусть пока будет в ожидании пока до винды версия 3.30 дойдет
@@ -610,8 +610,15 @@ class GpRuler (objCutline):
                 if not intersect_geom.isEmpty():
                     for  part_geom in intersect_geom.asGeometryCollection() :
                         dist = part_geom.distance(
-                                          QgsGeometry.fromPoint(sectvert_beg)
-                                         )
+                                          QgsGeometry.fromPointXY
+                                                     (
+                                                      QgsPointXY(sectvert_beg)
+                                          )
+                        )
+                        # В винде почему-то нет fromPoint
+                        #dist = part_geom.distance(
+                        #                  QgsGeometry.fromPoint(sectvert_beg)
+                        #                 )
                         if fname: cutname = featline[fname]
                         else: cutname = featline.id()
                         cutpoints.append((x_beg+dist, cutname))
