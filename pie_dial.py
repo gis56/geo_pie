@@ -334,8 +334,9 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
    # Действия на нажатие клавиши удалить из списка
     def remove_click (self):
         index = self.list_lnplg.currentRow()
-        self.list_lnplg.takeItem(index)
-        self.data_lnplg.pop(index)
+        if index > -1:
+            self.list_lnplg.takeItem(index)
+            self.data_lnplg.pop(index)
 
     # Подготовка и запуск формы диалога
     def run(self):

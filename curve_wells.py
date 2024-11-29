@@ -56,15 +56,8 @@ class objCutline ():
                 if not intersect_geom.isEmpty():
                     for  part_geom in intersect_geom.asGeometryCollection() :
                         dist = part_geom.distance(
-                                          QgsGeometry.fromPointXY
-                                                     (
-                                                      QgsPointXY(sectvert_beg)
-                                          )
-                        )
-                        # В винде почему-то нет fromPoint
-                        #dist = part_geom.distance(
-                        #                  QgsGeometry.fromPoint(sectvert_beg)
-                        #                 )
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
                         #ID = featline.id()
                         #cutpoints.append((x_beg+dist, featline[field], ID))
                         cutpoints.append((x_beg+dist, featline[field]))
@@ -114,7 +107,7 @@ class objCutline ():
         while index < len(sort_points)-1:
             x1, x2, name = sort_points[index]
             n1, n2, next_name = sort_points[index+1]
-            if name == next_name:
+            if name == next_name and x2 == n1:
                 sort_points[index+1] = (x1, n2, name)
                 sort_points.pop(index)
             else: index += 1
@@ -561,21 +554,11 @@ class GpRuler (objCutline):
 
     def coef_unit (self):
         unit = QgsProject.instance().crs().mapUnits()
-        if unit == QgsUnitTypes.DistanceMillimeters: return 10
-        elif unit == QgsUnitTypes.DistanceCentimeters: return 1
-        elif unit == QgsUnitTypes.DistanceMeters: return 0.01
-        elif unit == QgsUnitTypes.DistanceKilometers: return 0.0001
-        else: return -1
-
-    """ Пусть пока будет в ожидании пока до винды версия 3.30 дойдет
-    def coef_unit (self):
-        unit = QgsProject.instance().crs().mapUnits()
         if unit == Qgis.DistanceUnit.Millimeters: return 10
         elif unit == Qgis.DistanceUnit.Centimeters: return 1
         elif unit == Qgis.DistanceUnit.Meters: return 0.01
         elif unit == Qgis.DistanceUnit.Kilometers: return 0.0001
         else: return -1
-    """
 
     """
     def intersect_lines(self, feat_cutline, cuts_layer):
@@ -610,15 +593,8 @@ class GpRuler (objCutline):
                 if not intersect_geom.isEmpty():
                     for  part_geom in intersect_geom.asGeometryCollection() :
                         dist = part_geom.distance(
-                                          QgsGeometry.fromPointXY
-                                                     (
-                                                      QgsPointXY(sectvert_beg)
-                                          )
-                        )
-                        # В винде почему-то нет fromPoint
-                        #dist = part_geom.distance(
-                        #                  QgsGeometry.fromPoint(sectvert_beg)
-                        #                 )
+                                          QgsGeometry.fromPoint(sectvert_beg)
+                                         )
                         if fname: cutname = featline[fname]
                         else: cutname = featline.id()
                         cutpoints.append((x_beg+dist, cutname))
