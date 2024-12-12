@@ -32,5 +32,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
-    from .save_attributes import SaveAttributes
-    return SaveAttributes(iface)
+    from .geopie import GeoPie
+    return GeoPie(iface)

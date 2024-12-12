@@ -34,12 +34,13 @@ from .csv_shape import *
 from .zso_zone import *
 from .curve_wells import *
 import os.path
+import webbrowser
 
 from qgis.core import QgsProject, Qgis
 
 from .profile_outcrop import *
 
-class SaveAttributes:
+class GeoPie:
     """QGIS Plugin Implementation."""
     def __init__(self, iface):
         """Constructor.
@@ -211,6 +212,13 @@ class SaveAttributes:
             callback=self.zsozone,
             parent=self.iface.mainWindow())
 
+        icon_path = self.plugin_dir + '/icons/icon.png'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Справка'),
+            callback=self.helpbook,
+            parent=self.iface.mainWindow())
+
 
 
     def unload(self):
@@ -258,11 +266,12 @@ class SaveAttributes:
 
     """ Проекция профиля изогнутой скважины на линию разреза
     """
-    def  curvwells (self):
-        lvl, txt, ttl = cut_curvwell()
-        self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
+    def curvwells (self):
+        cut_curvwell(self.iface)
     """
         Конструкция скважин
     def run(self):
         pass
     """
+    def helpbook (self):
+        webbrowser.open_new_tab('https://geo-pie.readthedocs.io/')

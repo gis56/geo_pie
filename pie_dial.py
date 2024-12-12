@@ -5,7 +5,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, Qt
 
 from qgis.core import (QgsProject,
                        Qgis,
@@ -245,6 +245,8 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
     def __init__(self, parent=None):
         super(formCurveWells, self).__init__(parent)
         self.setupUi(self)
+
+        #self.setFixedSize(330,350)
 
         # Настройка mLayer (скважины)
         self.mLayer.setFilters(QgsMapLayerProxyModel.PointLayer)

@@ -1011,7 +1011,7 @@ class geoSectionline ():
 #    geoSectionline
 #-----------------------------------------------------------------------------
 
-def cut_curvwell():
+def cut_curvwell(iface):
 
     dialog = formCurveWells()
     result = dialog.run()
@@ -1087,5 +1087,4 @@ def cut_curvwell():
         txt = f'Результат в группе "Разрезы". {errlist}'
     else: txt = "Галя, у нас отмена."
     del dialog
-
-    return Qgis.Success, txt, "Завершено"
+    iface.messageBar().pushMessage("Завершено", txt, level=Qgis.Success, duration=5)
