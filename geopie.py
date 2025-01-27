@@ -208,7 +208,7 @@ class GeoPie:
         icon_path = self.plugin_dir + '/icons/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Зоны ЗСО'),
+            text=self.tr(u'Зоны СО'),
             callback=self.zsozone,
             parent=self.iface.mainWindow())
 
