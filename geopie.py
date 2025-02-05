@@ -33,6 +33,7 @@ from .wells_matrix import *
 from .csv_shape import *
 from .zso_zone import *
 from .curve_wells import *
+from .cadastr_js import *
 import os.path
 import webbrowser
 
@@ -219,7 +220,12 @@ class GeoPie:
             callback=self.helpbook,
             parent=self.iface.mainWindow())
 
-
+        icon_path = self.plugin_dir + '/icons/icon.png'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Кадастровые объекты'),
+            callback=self.cadastr_zone,
+            parent=self.iface.mainWindow())
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -273,5 +279,10 @@ class GeoPie:
     def run(self):
         pass
     """
+    """ Скачивание кадастровых зон в формате GeoJson
+    """
+    def cadastr_zone(self):
+        cadastrshp(self.iface)
+
     def helpbook (self):
         webbrowser.open_new_tab('https://geo-pie.readthedocs.io/')

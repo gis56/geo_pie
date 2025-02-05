@@ -526,3 +526,43 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
 #       formZonezso
 #-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------
+# Форма скрипта загрузки кадастровых участков в GeoJson
+# formGeojsontoShape
+#-----------------------------------------------------------------------------
+FORM_CLASS_5, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui/json_to_shape.ui'))
+
+
+class formGeojsontoShape(QtWidgets.QDialog, FORM_CLASS_5):
+    msgBox = QtWidgets.QMessageBox()
+
+    def __init__(self, parent=None):
+        super(formGeojsontoShape, self).__init__(parent)
+        self.setupUi(self)
+
+        self.cadastr_list_file.setFilter('Текстовый файл (*.txt);;\
+                                          Любой файл (*)')
+
+    # Подготовка и запуск формы диалога
+    def run(self):
+        self.exec_()
+        return self.result()
+
+    # Перегрузка ok
+    def accept(self):
+        if not self.cadastr_list_file.lineEdit().text():
+            self.msgBox.warning(self,
+                                "Ошибка выполнения",
+                                "Файла не существует"
+                                )
+        else: self.done(QtWidgets.QDialog.Accepted)
+
+    # Путь к файлу с номерами кадастровых участков
+    def cadastr_path(self):
+        return self.cadastr_list_file.lineEdit().text()
+#-----------------------------------------------------------------------------
+#   formCSVshape
+#-----------------------------------------------------------------------------
+
+
