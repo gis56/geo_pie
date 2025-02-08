@@ -54,7 +54,7 @@ class EncDec():
 def maplayer (geomattr, layer_name, attr_list, layer_type, addmap=True):
 
     project = QgsProject.instance()
-    uri = "{}?crs=epsg:{}".format(layer_type, project.crs().postgisSrid())
+    uri = "{}?crs={}".format(layer_type, project.crs().authid())
     virtLayer = QgsVectorLayer(uri, layer_name, "memory")
     virtProvider = virtLayer.dataProvider()
     virtProvider.addAttributes(attr_list)

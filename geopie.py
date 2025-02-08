@@ -213,18 +213,18 @@ class GeoPie:
             callback=self.zsozone,
             parent=self.iface.mainWindow())
 
-        icon_path = self.plugin_dir + '/icons/icon.png'
-        self.add_action(
-            icon_path,
-            text=self.tr(u'Справка'),
-            callback=self.helpbook,
-            parent=self.iface.mainWindow())
-
-        icon_path = self.plugin_dir + '/icons/icon.png'
+        icon_path = self.plugin_dir + '/icons/cadastr48.svg'
         self.add_action(
             icon_path,
             text=self.tr(u'Кадастровые объекты'),
             callback=self.cadastr_zone,
+            parent=self.iface.mainWindow())
+
+        icon_path = self.plugin_dir + '/icons/rtd_help48.svg'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Справка'),
+            callback=self.helpbook,
             parent=self.iface.mainWindow())
 
     def unload(self):

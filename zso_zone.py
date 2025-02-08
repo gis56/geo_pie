@@ -56,7 +56,7 @@ def zsozone():
 
         path = os.path.dirname(__file__)
         fields = [QgsField("well", QVariant.String),
-                  QgsField("name_radius", QVariant.String)
+                  QgsField("nameradius", QVariant.String)
                  ]
         group = creategroup("zso")
         vlayer = maplayer(feats_zone, "zone_zso", fields, "Polygon", False)
@@ -64,7 +64,7 @@ def zsozone():
         group.addLayer(vlayer)
 
         fields = [QgsField("well", QVariant.String),
-                  QgsField("name_radius", QVariant.String),
+                  QgsField("nameradius", QVariant.String),
                   QgsField("radius", QVariant.Int)
                  ]
         vlayer = maplayer(feats_arr, "arrow_zone", fields, "LineString", False)
