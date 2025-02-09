@@ -151,9 +151,9 @@ class GeoPie:
         if whats_this is not None:
             action.setWhatsThis(whats_this)
 
-        if add_to_toolbar:
+        #if add_to_toolbar:
             # Adds plugin icon to Plugins toolbar
-            self.iface.addToolBarIcon(action)
+            #self.iface.addToolBarIcon(action)
 
         if add_to_menu:
             self.iface.addPluginToVectorMenu(
@@ -206,7 +206,7 @@ class GeoPie:
             callback=self.pointcsv,
             parent=self.iface.mainWindow())
 
-        icon_path = self.plugin_dir + '/icons/icon.png'
+        icon_path = self.plugin_dir + '/icons/zso48.svg'
         self.add_action(
             icon_path,
             text=self.tr(u'Зоны СО'),
