@@ -432,11 +432,12 @@ class GpProfiles (objCutline):
         verts = self.cut_intersect_ln(self.feat, *izline)
         #verts = self.cut_intersect_ln(self.geom_cutline, *izline)
         izline_points = []
-        for vert in verts:
-            x, y = vert
-            #x, y, ID = vert
-            izline_points.append((float(x), float(y)))
-        self.alt_extrem.extend([
+        if verts:
+            for vert in verts:
+                x, y = vert
+                #x, y, ID = vert
+                izline_points.append((float(x), float(y)))
+            self.alt_extrem.extend([
                         min(izline_points, key=lambda y: y[1])[1],
                         max(izline_points, key=lambda y: y[1])[1]
                         ])
@@ -456,18 +457,20 @@ class GpProfiles (objCutline):
             # Получение высоты с растра strm (координата Y профиля)
             point_outcrop = QgsPointXY(densify_line.vertexAt(i))
             sec_y = srtm.sample(point_outcrop,1)[0]
-            alt_list.append(sec_y)
-            # Получение расстояний от начала линии разреза
-            # до текущей точки (координата X профиля)
             sec_x = densify_line.distanceToVertex(i)
             # Накопление списка точек профиля
-            srtm_points.append((sec_x, sec_y))
-        self.alt_extrem.extend([min(alt_list), max(alt_list)])
+            if not math.isnan(sec_y):
+                alt_list.append(sec_y)
+                srtm_points.append((sec_x, sec_y))
+        if alt_list:
+            self.alt_extrem.extend([min(alt_list), max(alt_list)])
 
         return srtm_points
 
     def get_extreme (self):
-        return min(self.alt_extrem), max(self.alt_extrem)
+        if self.alt_extrem:
+            return min(self.alt_extrem), max(self.alt_extrem)
+        else: return false
 
     def get_srtm_geom (self, scale=1):
         points = []
@@ -486,6 +489,7 @@ class GpProfiles (objCutline):
         return simplify_profile_line
 
     def get_izln_geom (self, scale=1):
+        if not self.sectpnt_izln: return QgsGeometry.fromPolyline([])
         x,y = self.sectpnt_izln[0]
         points = [QgsPointXY(0, y*scale)]
         for point in self.sectpnt_izln:
@@ -775,8 +779,10 @@ class geoSectionline ():
     # добавление линейки
     #-------------------------------------------------------------------------
     def add_ruler (self, feats_cut, cutscale):
-        min_alt, max_alt = self.profiline.get_extreme()
-        extreme = [min_alt, max_alt] + self.well_depths
+        extreme = self.profiline.alt_extrem
+        extreme.extend(self.well_depths)
+        # последовательно проверить extrem на пустоту и вернуть сообщение о
+        # соответствующей ошибке
         min_alt = min(extreme)
         max_alt = max(extreme)
         # создание объекта линейки
@@ -1035,10 +1041,12 @@ def cut_curvwell(iface):
             # добавление профилей разреза
             cline.add_profile(izln, srtm)
             # добавление линейки
+            #if cline.profiline.alt_extrem:
             cline.add_ruler(dialog.get_featcut(), cutscale)
             # добавление слоев линий и полигонов
             cline.add_lnplg(lnplg)
             # добавление объекта разреза в список
+            #else: errlist += f"Отсутствуют данные о рельефе - {fcutname}\n"
             cut_lines.append(cline)
 
         path = os.path.dirname(__file__)
@@ -1051,15 +1059,28 @@ def cut_curvwell(iface):
             if layer_data:
                 layer = maplayer(*layer_data)
                 group.addLayer(layer)
+            else: errlist += (f"\n Отсутствует информация о рельефе для\
+                              разреза {cut.name}")
 
             # линейка
-            ln_ruler, pnt_ruler = cut.ruler.get_ruler(scale)
-            layer = maplayer(*ln_ruler)
-            layer.loadNamedStyle(f'{path}/legstyle/ruler_ln.qml')
-            group.addLayer(layer)
-            layer = maplayer(*pnt_ruler)
-            layer.loadNamedStyle(f'{path}/legstyle/ruler_pnt.qml')
-            group.addLayer(layer)
+            if hasattr(cut, 'ruler'):
+                ln_ruler, pnt_ruler = cut.ruler.get_ruler(scale)
+                layer = maplayer(*ln_ruler)
+                layer.loadNamedStyle(f'{path}/legstyle/ruler_ln.qml')
+                group.addLayer(layer)
+                layer = maplayer(*pnt_ruler)
+                layer.loadNamedStyle(f'{path}/legstyle/ruler_pnt.qml')
+                group.addLayer(layer)
+
+                # вывод линейных слоев
+                for layer_data in cut.get_lnlayer(scale):
+                    layer = maplayer(*layer_data)
+                    group.addLayer(layer)
+
+                # вывод полигональных слоев
+                for layer_data in cut.get_plglayer(scale):
+                    layer = maplayer(*layer_data)
+                    group.addLayer(layer)
 
             # скважины
             layer_data = cut.get_wells(scale)
@@ -1073,16 +1094,6 @@ def cut_curvwell(iface):
                 if feads:
                     layer = maplayer(feads, *layer_data)
                     group.addLayer(layer)
-
-            # вывод линейных слоев
-            for layer_data in cut.get_lnlayer(scale):
-                layer = maplayer(*layer_data)
-                group.addLayer(layer)
-
-            # вывод полигональных слоев
-            for layer_data in cut.get_plglayer(scale):
-                layer = maplayer(*layer_data)
-                group.addLayer(layer)
 
         txt = f'Результат в группе "Разрезы". {errlist}'
     else: txt = "Галя, у нас отмена."

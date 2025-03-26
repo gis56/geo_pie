@@ -5,15 +5,15 @@
 [general]
 name=GeoPie
 qgisMinimumVersion=3.0
-description=Построение разреза, конструкция скважин
+description=Набор плагинов
 version=0.1
 author=Jh
 email=jh56@bk.ru
 
-about=Что-то пока непонятное
+about=Построение разреза, зоны СО, матрица расстояний, объекты кадастровой карты. 
 
-tracker=http://bugs
-repository=http://repo
+#tracker=http://bugs
+repository=https://github.com/gis56/geo_pie
 # End of mandatory metadata
 
 # Recommended items:
@@ -25,8 +25,7 @@ hasProcessingProvider=no
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=http://homepage
-category=Vector
+homepage=https://geo-pie.readthedocs.io/
 icon=arc.png
 # experimental flag
 experimental=True
@@ -40,7 +39,7 @@ deprecated=False
 # plugin_dependencies=
 
 Category of the plugin: Raster, Vector, Database or Web
-# category=
+category=Vector
 
 # If the plugin can run on QGIS Server.
 server=False
