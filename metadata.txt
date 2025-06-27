@@ -6,8 +6,8 @@
 name=GeoPie
 qgisMinimumVersion=3.0
 description=Набор плагинов
-version=0.1
-author=Jh
+version=0.4.1
+author=Evgeniy Shlunev
 email=jh56@bk.ru
 
 about=Построение разреза, зоны СО, матрица расстояний, объекты кадастровой карты. 
@@ -23,10 +23,10 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python
+tags=python, zso, distance
 
 homepage=https://geo-pie.readthedocs.io/
-icon=arc.png
+icon=icons/zso48.svg
 # experimental flag
 experimental=True
 
