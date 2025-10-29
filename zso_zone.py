@@ -9,7 +9,8 @@ from qgis.core import (
                         QgsGeometry,
                         QgsFeature,
                         QgsEllipse,
-                        QgsPointXY
+                        QgsPointXY,
+                        NULL
                       )
 from .pie_dial import formZonezso
 from .utilib import *
@@ -28,31 +29,44 @@ def zsozone():
 
         feats_zone = []
         feats_arr = []
+        warn_txt = ''
         for feat in features:
             center = feat.geometry().asPoint()
             if chlist[2]:
                 radiuss = (feat['r_n3'], feat['r_s3'],
                            feat['r_w3'], feat['r_o3'])
-                zone = draw_ellipse(center, radiuss, azimut)
-                attr_zone = [feat['name'],'R3']
-                feats_zone.append((zone, attr_zone))
-                arrow = draw_arrow(center, radiuss, azimut, feat['name'], 3)
-                feats_arr.extend(arrow)
+                if (NULL in radiuss) or (0 in radiuss):
+                    warn_txt += f"\nРадиусы третьей зоны для {feat['name']}\
+                        не указаны."
+                else:
+                    zone = draw_ellipse(center, radiuss, azimut)
+                    attr_zone = [feat['name'],'R3']
+                    feats_zone.append((zone, attr_zone))
+                    arrow = draw_arrow(center, radiuss, azimut, feat['name'],3)
+                    feats_arr.extend(arrow)
             if chlist[1]:
                 radiuss = (feat['r_n2'], feat['r_s2'],
                            feat['r_w2'], feat['r_o2'])
-                zone = draw_ellipse(center, radiuss, azimut)
-                attr_zone = [feat['name'],'R2']
-                feats_zone.append((zone, attr_zone))
-                arrow = draw_arrow(center, radiuss, azimut, feat['name'], 2)
-                feats_arr.extend(arrow)
+                if (NULL in radiuss) or (0 in radiuss):
+                    warn_txt += f"\nРадиусы второй зоны для {feat['name']}\
+                        не указаны."
+                else:
+                    zone = draw_ellipse(center, radiuss, azimut)
+                    attr_zone = [feat['name'],'R2']
+                    feats_zone.append((zone, attr_zone))
+                    arrow = draw_arrow(center, radiuss, azimut, feat['name'],2)
+                    feats_arr.extend(arrow)
             if chlist[0]:
                 r = feat['r1']
-                zone = draw_qudrat(center, r, azimut)
-                attr_zone = [feat['name'],'r1']
-                feats_zone.append((zone, attr_zone))
-                arrow = draw_arrow(center, (r,r,r,r), azimut, feat['name'], 1)
-                feats_arr.extend(arrow)
+                if (r == NULL) or (r == 0):
+                    warn_txt += f"\nРадиус первой зоны для {feat['name']}\
+                        не указан."
+                else:
+                    zone = draw_qudrat(center, r, azimut)
+                    attr_zone = [feat['name'],'r1']
+                    feats_zone.append((zone, attr_zone))
+                    arrow = draw_arrow(center,(r,r,r,r),azimut,feat['name'],1)
+                    feats_arr.extend(arrow)
 
         path = os.path.dirname(__file__)
         fields = [QgsField("well", QVariant.String),
@@ -70,7 +84,7 @@ def zsozone():
         vlayer = maplayer(feats_arr, "arrow_zone", fields, "LineString", False)
         vlayer.loadNamedStyle(f'{path}/legstyle/zso_arrow.qml')
         group.addLayer(vlayer)
-        txt = "Результат в группе zso"
+        txt = "Результат в группе zso." + warn_txt
     else: txt = "Отмена."
     del dialog
     return Qgis.Success, txt, "Завершено"

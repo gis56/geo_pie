@@ -282,10 +282,10 @@ class GpWell ():
             x, yz = point
             line.append(QgsPointXY(x, yz*scale))
         geom = QgsGeometry.fromPolylineXY(line)
-        lcode = False
+        lcode = 0 #False
         if self.gtr:
             keys = self.gtr.keys()
-            if 'filters' in keys: lcode = True
+            if 'filters' in keys: lcode = 1 #True
         attr = [self.name_well, yz, lcode]
 
         return geom, attr
@@ -468,6 +468,7 @@ class GpProfiles (objCutline):
         return srtm_points
 
     def get_extreme (self):
+
         if self.alt_extrem:
             return min(self.alt_extrem), max(self.alt_extrem)
         else: return false
@@ -779,7 +780,9 @@ class geoSectionline ():
     # добавление линейки
     #-------------------------------------------------------------------------
     def add_ruler (self, feats_cut, cutscale):
-        extreme = self.profiline.alt_extrem
+
+        extreme = list(self.profiline.get_extreme())
+        #extreme = self.profiline.alt_extrem
         extreme.extend(self.well_depths)
         # последовательно проверить extrem на пустоту и вернуть сообщение о
         # соответствующей ошибке
@@ -950,7 +953,7 @@ class geoSectionline ():
         # Поля атрибутов изогнутых скважин
         fields = [QgsField("name",QVariant.String),
                   QgsField("depth",QVariant.Double),
-                  QgsField("lcode", QVariant.Bool)]
+                  QgsField("lcode", QVariant.Int)]
         feats = []
         for well in self.depth_wells:
             geom, attr = well.get_sectionLine(scale)
