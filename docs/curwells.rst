@@ -2,6 +2,9 @@
 Конструктор разреза.
 ====================
 
+.. contents:: Содержание
+   :depth: 2
+
 Подготовка данных.
 ------------------
 
@@ -145,6 +148,7 @@
 
 .. note:: Опции помеченные звездочкой - обязательные.
 
+
 .. rubric:: Закладка :menuselection:`Разрез`.
 
 В :menuselection:`Слой с линиями разреза` выбрать подготовленный слой с линиями разреза.
@@ -199,7 +203,21 @@
    :scale: 90 %
    :align: center
 
+.. math::
+   :label: next_depth
 
-..  toctree::
+   \mathtt{ A_0 (x_0,\: y_0,\: z_0) } \\
+   \mathtt{ A_1 (x_1,\: y_1,\: z_1) } \\
+   \mathtt{ x_1 = x_0 + \Delta x } \\
+   \mathtt{ y_1 = y_0 + \Delta y } \\
 
-..   cutclass
+.. math::
+   :label: delta
+
+   \mathtt{ A_1^`A_1 = \tan(\gamma)\times\mid z_0-z_1\mid } \\
+   \mathtt{ \Delta x = \sin(\alpha)\times A_1^`A_1 } \\
+   \mathtt{ \Delta y = \cos(\alpha)\times A_1^`A_1 } \\
+
+Найти координаты точек для каждого интервала глубины :math:`\mathtt{z_{[0\dotso n]}  (A_1,A_2,\dotso,A_n)}`
+
+На основе данных :ref:`таблицы <altcsv>` находим координаты узлов линии скважины на каждом интервале глубины по формуле :eq:`next_depth`

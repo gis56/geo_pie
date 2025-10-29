@@ -2,6 +2,12 @@
 Классы  *curwells.py*
 =====================
 
+
+Из формы диалога :any:`formCurveWells` получает следующие данные:
+:doc:`dialogs`:any:`formCurvewells`
+
+* **wlayer** слой скважин
+
 :any:`objCutline`
    | :any:`objCutline.cut_intersect_ln`
    | :any:`objCutline.cut_intersect_plg`
