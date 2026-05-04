@@ -93,7 +93,7 @@ class formWellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
     # Подготовка и запуск формы диалога
     def run (self):
         self.activ_mLayer()
-        self.exec_()
+        self.exec()
         return self.result()
 
     def featwells (self):
@@ -158,7 +158,7 @@ class formCSVshape(QtWidgets.QDialog, FORM_CLASS_2):
 
     # Подготовка и запуск формы диалога
     def run(self):
-        self.exec_()
+        self.exec()
         return self.result()
 
     # Перегрузка ok
@@ -346,7 +346,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
         self.activ_mLayer()
         self.activ_mLayer_izln()
         self.activ_mLayer_lnplg()
-        self.exec_()
+        self.exec()
         return self.result()
 
     # Перегрузка метода диалогового окна accept для
@@ -482,7 +482,7 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
 
     # Подготовка и запуск формы диалога
     def run(self):
-        self.exec_()
+        self.exec()
         return self.result()
 
     # Проверка наличия полей с радиусами
@@ -521,7 +521,10 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
         return features
 
     def getazimut(self):
-        return self.azimut_spinBox.value()-90
+        if (self.azimut_spinBox.value() < 0):
+            return self.azimut_spinBox.value()+270
+        else:
+            return self.azimut_spinBox.value()-90
 #-----------------------------------------------------------------------------
 #       formZonezso
 #-----------------------------------------------------------------------------
@@ -546,7 +549,7 @@ class formGeojsontoShape(QtWidgets.QDialog, FORM_CLASS_5):
 
     # Подготовка и запуск формы диалога
     def run(self):
-        self.exec_()
+        self.exec()
         return self.result()
 
     # Перегрузка ok

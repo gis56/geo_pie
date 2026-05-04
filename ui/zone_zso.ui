@@ -77,8 +77,11 @@
     </item>
     <item>
      <widget class="QSpinBox" name="azimut_spinBox">
+      <property name="minimum">
+       <number>-359</number>
+      </property>
       <property name="maximum">
-       <number>360</number>
+       <number>359</number>
       </property>
      </widget>
     </item>

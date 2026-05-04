@@ -107,9 +107,9 @@ class DBEditor(QtWidgets.QDialog, FORM_CLASS_2):
         i=0
         while i < (self.filters_tableWidget.rowCount()):
             item.append(QTableWidgetItem())
-            item[i].setData(Qt.DisplayRole, 0.00)
-            item[i].setData(Qt.UserRole, float)
-            item[i].setTextAlignment(Qt.AlignHCenter);
+            item[i].setData(Qt.ItemDataRole.DisplayRole, 0.00)
+            item[i].setData(Qt.ItemDataRole.UserRole, float)
+            item[i].setTextAlignment(Qt.AlignmentFlag.AlignHCenter);
             self.filters_tableWidget.setItem(i,colmn,item[i])
             i = i+1
 
@@ -127,9 +127,9 @@ class DBEditor(QtWidgets.QDialog, FORM_CLASS_2):
         self.litol_tableWidget.insertRow(row)
         # Задание ячейке типа вводимых данных
         item = QTableWidgetItem()
-        item.setData(Qt.DisplayRole, 0.00)
-        item.setData(Qt.UserRole, float)
-        item.setTextAlignment(Qt.AlignHCenter);
+        item.setData(Qt.ItemDataRole.DisplayRole, 0.00)
+        item.setData(Qt.ItemDataRole.UserRole, float)
+        item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter);
         self.litol_tableWidget.setItem(row,0,item)
 
         #self.filters_tableWidget.item(row,2).setEditTriggers(
@@ -174,9 +174,9 @@ class DBEditor(QtWidgets.QDialog, FORM_CLASS_2):
         self.age_tableWidget.insertRow(row)
         # Задание ячейке типа вводимых данных
         item = QTableWidgetItem()
-        item.setData(Qt.DisplayRole, 0.00)
-        item.setData(Qt.UserRole, float)
-        item.setTextAlignment(Qt.AlignHCenter);
+        item.setData(Qt.ItemDataRole.DisplayRole, 0.00)
+        item.setData(Qt.ItemDataRole.UserRole, float)
+        item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter);
         self.age_tableWidget.setItem(row,0,item)
 
         #self.filters_tableWidget.item(row,2).setEditTriggers(
@@ -383,7 +383,7 @@ class DBEditor(QtWidgets.QDialog, FORM_CLASS_2):
         # show the dialog
         self.show()
         # Run the dialog event loop
-        self.exec_()
+        self.exec()
 """
 def wells_actn (name,x,y):
     msgBox = QtWidgets.QMessageBox()
