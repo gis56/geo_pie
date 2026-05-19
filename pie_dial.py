@@ -4,7 +4,7 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
+from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QDialog
 from qgis.PyQt.QtCore import QVariant, Qt
 
 from qgis.core import (QgsProject,
@@ -85,7 +85,7 @@ class formWellsMatrix(QtWidgets.QDialog, FORM_CLASS_1):
         filename = self.mFile.lineEdit().text()
         dir_name = os.path.dirname(filename)
         if os.path.isdir(dir_name) and self.mField.currentField():
-            self.done(QtWidgets.QDialog.Accepted)
+            self.done(QDialog.DialogCode.Accepted)
         else :
             self.msgBox.warning(self,"Матрица скважин",
                                 "Не все поля заполнены.")
@@ -177,7 +177,7 @@ class formCSVshape(QtWidgets.QDialog, FORM_CLASS_2):
         else:
             if self.decode_check.isChecked():
                 self.enc.set_dec(0)
-            self.done(QtWidgets.QDialog.Accepted)
+            self.done(QDialog.DialogCode.Accepted)
 
     # Выбор файла
     def csv_open(self):
@@ -358,7 +358,7 @@ class formCurveWells(QtWidgets.QDialog, FORM_CLASS_3):
             self.mField_alt.currentField() and
             self.mField_file.currentField()
            ):
-            self.done(QtWidgets.QDialog.Accepted)
+            self.done(QDialog.DialogCode.Accepted)
         else:
             self.msgBox.warning(self,"Матрица скважин",
                                 "Не все поля заполнены.")
@@ -473,7 +473,7 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
         check, checklist = self.checkzone()
         if check:
             self.checklist = checklist
-            self.done(QtWidgets.QDialog.Accepted)
+            self.done(QDialog.DialogCode.Accepted)
         else:
             self.msgBox.warning(self,
                                 "Проверка ввода данных",
@@ -559,7 +559,7 @@ class formGeojsontoShape(QtWidgets.QDialog, FORM_CLASS_5):
                                 "Ошибка выполнения",
                                 "Файла не существует"
                                 )
-        else: self.done(QtWidgets.QDialog.Accepted)
+        else: self.done(QDialog.DialogCode.Accepted)
 
     # Путь к файлу с номерами кадастровых участков
     def cadastr_path(self):
