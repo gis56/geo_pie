@@ -7,14 +7,19 @@ from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox, QDialog
 from qgis.PyQt.QtCore import QVariant, Qt
 
-from qgis.core import (QgsProject,
+from qgis.core import (
+                       QgsProject,
                        Qgis,
                        QgsVectorLayer,
                        QgsField,
                        QgsGeometry,
                        QgsFeature,
                        QgsFieldProxyModel,
-                       QgsMapLayerProxyModel)
+                       QgsMapLayerProxyModel,
+                      )
+
+#from qgis.gui import  (QgsProjectionSelectionWidget,
+#                      QgsCoordinateReferenceSystemProxyModel)
 
 from .utilib import EncDec
 
@@ -445,12 +450,17 @@ FORM_CLASS_4, _ = uic.loadUiType(os.path.join(
 
 class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
 
-    checklist = []
+    #checklist = []
     msgBox = QtWidgets.QMessageBox()
+
+    LYR_CRS = 1
+    PRJ_CRS = 2
 
     def __init__(self, parent=None):
         super(formZonezso, self).__init__(parent)
         self.setupUi(self)
+
+        self.prj_crs = QgsProject.instance().crs()
 
         # Реакция на выбор слоя в mLayer
         self.layer_ComboBox.currentIndexChanged.connect(self.activ_layerbox)
@@ -464,21 +474,15 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
         layer = self.layer_ComboBox.currentLayer()
         if layer and layer.selectedFeatures() :
             self.select_checkBox.setEnabled(True)
-        else :
+        else:
             self.select_checkBox.setEnabled(False)
+        # Определение crs выбранного слоя
+        if layer : self.layer_crs = layer.crs()
 
     # Перегрузка метода диалогового окна accept для
     # проверки заполненности всех полей формы
     def accept (self) :
-        check, checklist = self.checkzone()
-        if check:
-            self.checklist = checklist
-            self.done(QDialog.DialogCode.Accepted)
-        else:
-            self.msgBox.warning(self,
-                                "Проверка ввода данных",
-                                "Не одно поле радиусов зон не найдено!"
-                                )
+        if self.checkzone() : self.done(QDialog.DialogCode.Accepted)
 
     # Подготовка и запуск формы диалога
     def run(self):
@@ -489,28 +493,40 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
     def checkzone (self) :
         layer = self.layer_ComboBox.currentLayer()
         fnm = layer.fields().names()
-        check = [False, False, False]
-        if 'r1' in fnm:
-            check[0] = True
+
+        self.checklist = [False, False, False, False]
+
+        if not self.layer_crs.isGeographic() :
+            self.checklist[3] = self.LYR_CRS
+            msgTxt = f"Проекция слоя: {self.layer_crs.authid()} - \
+{self.layer_crs.description()}"
+        elif not self.prj_crs.isGeographic() :
+            self.checklist[3] = self.PRJ_CRS
+            msgTxt = f"Проекция проекта: {self.prj_crs.authid()} - \
+{self.prj_crs.description()}"
         else:
-            self.msgBox.warning(self,"Проверка атрибутов.",
-                                "Отсутствует поле первого пояса 'r1'.")
+            self.msgBox.critical(self, "Проверка проекции",
+                                 "Нет данных о проекции.")
+            return False
+
+        if 'r1' in fnm : self.checklist[0] = True
+        else: msgTxt += "\nОтсутствует поле первого пояса 'r1'."
         if (('r_n2' in fnm) and ('r_w2' in fnm) and
-            ('r_s2' in fnm) and ('r_o2' in fnm)):
-            check[1] = True
-        else:
-            self.msgBox.warning(self,"Проверка атрибутов.",
-                                "Отсутствует поля второго пояса 'r_2'.")
+            ('r_s2' in fnm) and ('r_o2' in fnm)) :
+            self.checklist[1] = True
+        else: msgTxt += "\nОтсутствует поле первого пояса 'r_2'."
         if (('r_n3' in fnm) and ('r_w3' in fnm) and
-            ('r_s3' in fnm) and ('r_o3' in fnm)):
-            check[2] = True
+            ('r_s3' in fnm) and ('r_o3' in fnm)) :
+            self.checklist[2] = True
+        else: msgTxt += "\nОтсутствует поле первого пояса 'r_3'."
+
+        if True in self.checklist[0:2] :
+            self.msgBox.information(self, "Проверка данных", msgTxt)
+            return True
         else:
-            self.msgBox.warning(self,"Проверка атрибутов.",
-                                "Отсутствует поля третьего пояса 'r_3'.")
-        if True in check:
-            return True, check
-        else:
-            return False, check
+            self.msgBox.critical(self, "Проверка данных",
+                                 "Отсутствуют поля радиусов")
+            return False
 
     def getfeatures(self):
         layer = self.layer_ComboBox.currentLayer()
@@ -525,6 +541,12 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
             return self.azimut_spinBox.value()+270
         else:
             return self.azimut_spinBox.value()-90
+    #TODO
+    def getcrs(self):
+        if self.checklist[3] == self.PRJ_CRS :
+            return self.layer_crs, self.prj_crs
+        else:
+            return self.layer_crs, False
 #-----------------------------------------------------------------------------
 #       formZonezso
 #-----------------------------------------------------------------------------

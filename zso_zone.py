@@ -10,13 +10,28 @@ from qgis.core import (
                         QgsFeature,
                         QgsEllipse,
                         QgsPointXY,
+                        QgsCoordinateReferenceSystem,
+                        QgsCoordinateTransform,
                         NULL
                       )
 from .pie_dial import formZonezso
 from .utilib import *
 
 #-----------------------------------------------------------------------------
-#
+"""
+#crsSrc = QgsCoordinateReferenceSystem("EPSG:4326")    # WGS 84
+crsDest = QgsCoordinateReferenceSystem("EPSG:32633")  # WGS 84 / UTM zone 33N
+transformContext = QgsProject.instance().transformContext()
+xform = QgsCoordinateTransform(crsSrc, crsDest, transformContext)
+
+# forward transformation: src -> dest
+pt1 = xform.transform(QgsPointXY(18,5))
+print("Transformed point:", pt1)
+
+# inverse transformation: dest -> src
+pt2 = xform.transform(pt1, QgsCoordinateTransform.ReverseTransform)
+print("Transformed back:", pt2)
+"""
 #
 #-----------------------------------------------------------------------------
 def zsozone():
@@ -27,11 +42,22 @@ def zsozone():
         chlist = dialog.checklist
         azimut = dialog.getazimut()
 
+        # Подготовка к трансформации CRS
+        global crs_prj
+        global xform
+        crs_lyr, crs_prj = dialog.getcrs()
+        if crs_prj :
+            crsSrc = QgsCoordinateReferenceSystem(crs_lyr.authid())   # WGS 84
+            crsDest = QgsCoordinateReferenceSystem(crs_prj.authid())  # UTM zone 33N
+            transformContext = QgsProject.instance().transformContext()
+            xform = QgsCoordinateTransform(crsSrc, crsDest, transformContext)
         feats_zone = []
         feats_arr = []
         warn_txt = ''
+        #TODO
         for feat in features:
-            center = feat.geometry().asPoint()
+            if crs_prj : center = xform.transform(feat.geometry().asPoint())
+            else: center = feat.geometry().asPoint()
             if chlist[2]:
                 radiuss = (feat['r_n3'], feat['r_s3'],
                            feat['r_w3'], feat['r_o3'])
@@ -40,6 +66,9 @@ def zsozone():
                         не указаны."
                 else:
                     zone = draw_ellipse(center, radiuss, azimut)
+                    if crs_prj :
+                        zone.transform(xform,
+                                       QgsCoordinateTransform.ReverseTransform)
                     attr_zone = [feat['name'],'R3']
                     feats_zone.append((zone, attr_zone))
                     arrow = draw_arrow(center, radiuss, azimut, feat['name'],3)
@@ -52,6 +81,9 @@ def zsozone():
                         не указаны."
                 else:
                     zone = draw_ellipse(center, radiuss, azimut)
+                    if crs_prj :
+                        zone.transform(xform,
+                                       QgsCoordinateTransform.ReverseTransform)
                     attr_zone = [feat['name'],'R2']
                     feats_zone.append((zone, attr_zone))
                     arrow = draw_arrow(center, radiuss, azimut, feat['name'],2)
@@ -63,6 +95,9 @@ def zsozone():
                         не указан."
                 else:
                     zone = draw_qudrat(center, r, azimut)
+                    if crs_prj :
+                        zone.transform(xform,
+                                       QgsCoordinateTransform.ReverseTransform)
                     attr_zone = [feat['name'],'r1']
                     feats_zone.append((zone, attr_zone))
                     arrow = draw_arrow(center,(r,r,r,r),azimut,feat['name'],1)
@@ -73,7 +108,8 @@ def zsozone():
                   QgsField("nameradius", QVariant.String)
                  ]
         group = creategroup("zso")
-        vlayer = maplayer(feats_zone, "zone_zso", fields, "Polygon", False)
+        vlayer = maplayer(feats_zone, "zone_zso", fields, "Polygon",
+                          False, crs_lyr)
         vlayer.loadNamedStyle(f'{path}/legstyle/zso.qml')
         group.addLayer(vlayer)
 
@@ -81,7 +117,8 @@ def zsozone():
                   QgsField("nameradius", QVariant.String),
                   QgsField("radius", QVariant.Int)
                  ]
-        vlayer = maplayer(feats_arr, "arrow_zone", fields, "LineString", False)
+        vlayer = maplayer(feats_arr, "arrow_zone", fields, "LineString",
+                          False, crs_lyr)
         vlayer.loadNamedStyle(f'{path}/legstyle/zso_arrow.qml')
         group.addLayer(vlayer)
         txt = "Результат в группе zso." + warn_txt
@@ -156,21 +193,33 @@ def draw_arrow (center, radiuss, azimut, wname, num):
     feats = []
     geom = QgsGeometry.fromPolylineXY([center, QgsPointXY(x+n, y)])
     geom.rotate(azimut, center)
+    if crs_prj :
+        geom.transform(xform,
+                       QgsCoordinateTransform.ReverseTransform)
     attr = [wname, f"{rtxt}_n{num}", n]
     feats.append((geom, attr))
 
     geom = QgsGeometry.fromPolylineXY([center, QgsPointXY(x, y+w)])
     geom.rotate(azimut, center)
+    if crs_prj :
+        geom.transform(xform,
+                       QgsCoordinateTransform.ReverseTransform)
     attr = [wname, f"{rtxt}_w{num}", w]
     feats.append((geom, attr))
 
     geom = QgsGeometry.fromPolylineXY([center, QgsPointXY(x-s, y)])
     geom.rotate(azimut, center)
+    if crs_prj :
+        geom.transform(xform,
+                       QgsCoordinateTransform.ReverseTransform)
     attr = [wname, f"{rtxt}_s{num}", s]
     feats.append((geom, attr))
 
     geom = QgsGeometry.fromPolylineXY([center, QgsPointXY(x, y-o)])
     geom.rotate(azimut, center)
+    if crs_prj :
+        geom.transform(xform,
+                       QgsCoordinateTransform.ReverseTransform)
     attr = [wname, f"{rtxt}_o{num}", o]
     feats.append((geom, attr))
 

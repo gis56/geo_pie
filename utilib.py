@@ -44,17 +44,18 @@ class EncDec():
         return str_enc
 
 # ----------------------------------------------------------------------------
-# Создание слоя (пока точек, потом сделать универсальным)
+#TODO Создание слоя (пока точек, потом сделать универсальным)
 # и дабавление его на карту (потом сделать возвращение виртуального слоя,
 # а добавление и компановка слоев будет в другом месте.
 # geomattr - список таплов геометрии и атрибутов объектов слоя
 # layer_name -  имя слоя
 # attr_list - список атрибутов слоя
 # ----------------------------------------------------------------------------
-def maplayer (geomattr, layer_name, attr_list, layer_type, addmap=True):
+def maplayer (geomattr, layer_name, attr_list, layer_type, addmap=True, crs=False):
 
     project = QgsProject.instance()
-    uri = "{}?crs={}".format(layer_type, project.crs().authid())
+    if not crs : crs = project.crs()
+    uri = "{}?crs={}".format(layer_type, crs.authid())
     virtLayer = QgsVectorLayer(uri, layer_name, "memory")
     virtProvider = virtLayer.dataProvider()
     virtProvider.addAttributes(attr_list)
