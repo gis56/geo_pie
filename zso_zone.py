@@ -52,6 +52,7 @@ def zsozone():
             transformContext = QgsProject.instance().transformContext()
             xform = QgsCoordinateTransform(crsSrc, crsDest, transformContext)
         feats_zone = []
+        feats_vert = [] # вершины квадрата
         feats_arr = []
         warn_txt = ''
         #TODO
@@ -94,12 +95,15 @@ def zsozone():
                     warn_txt += f"\nРадиус первой зоны для {feat['name']}\
                         не указан."
                 else:
-                    zone = draw_qudrat(center, r, azimut)
-                    if crs_prj :
-                        zone.transform(xform,
-                                       QgsCoordinateTransform.ReverseTransform)
+                    zone, verts = draw_qudrat(center, r, azimut, feat['name'])
+                    #if crs_prj :
+                    #    zone.transform(xform,
+                    #                   QgsCoordinateTransform.ReverseTransform)
                     attr_zone = [feat['name'],'r1']
                     feats_zone.append((zone, attr_zone))
+                    #
+                    if verts : feats_vert.extend(verts)
+                    #
                     arrow = draw_arrow(center,(r,r,r,r),azimut,feat['name'],1)
                     feats_arr.extend(arrow)
 
@@ -112,6 +116,16 @@ def zsozone():
                           False, crs_lyr)
         vlayer.loadNamedStyle(f'{path}/legstyle/zso.qml')
         group.addLayer(vlayer)
+
+        #
+        if verts :
+            fields = [QgsField("well", QVariant.String),
+                      QgsField("x", QVariant.Double),
+                      QgsField("y", QVariant.Double)]
+            vlayer = maplayer(feats_vert, "point_r1", fields, "Point",
+                              False, crs_lyr)
+            group.addLayer(vlayer)
+        #
 
         fields = [QgsField("well", QVariant.String),
                   QgsField("nameradius", QVariant.String),
@@ -130,7 +144,7 @@ def zsozone():
 #   Геометрия первой зоны ЗСО
 #   (квадрат)
 #-----------------------------------------------------------------------------
-def draw_qudrat (center, radius, azimut):
+def draw_qudrat (center, radius, azimut, wname):
     # Координаты центра эллипса
     cx = center.x()
     cy = center.y()
@@ -142,7 +156,16 @@ def draw_qudrat (center, radius, azimut):
     # Геометрия квадрата
     geom = QgsGeometry.fromPolygonXY([[pntNO,pntNW,pntSW,pntSO]])
     geom.rotate(azimut, center)
-    return geom
+    #TODO Геометрия вершин квадрата
+    if crs_prj :
+        geom.transform(xform,
+                       QgsCoordinateTransform.ReverseTransform)
+        feats = []
+        for vert in geom.vertices() :
+            attr = [wname, vert.x(), vert.y()]
+            feats.append((vert, attr))
+        return geom, feats
+    else: return geom, False
 
 #-----------------------------------------------------------------------------
 # Отрисовка эллипса
