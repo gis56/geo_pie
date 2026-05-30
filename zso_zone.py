@@ -18,20 +18,6 @@ from .pie_dial import formZonezso
 from .utilib import *
 
 #-----------------------------------------------------------------------------
-"""
-#crsSrc = QgsCoordinateReferenceSystem("EPSG:4326")    # WGS 84
-crsDest = QgsCoordinateReferenceSystem("EPSG:32633")  # WGS 84 / UTM zone 33N
-transformContext = QgsProject.instance().transformContext()
-xform = QgsCoordinateTransform(crsSrc, crsDest, transformContext)
-
-# forward transformation: src -> dest
-pt1 = xform.transform(QgsPointXY(18,5))
-print("Transformed point:", pt1)
-
-# inverse transformation: dest -> src
-pt2 = xform.transform(pt1, QgsCoordinateTransform.ReverseTransform)
-print("Transformed back:", pt2)
-"""
 #
 #-----------------------------------------------------------------------------
 def zsozone():
@@ -120,8 +106,8 @@ def zsozone():
         #
         if verts :
             fields = [QgsField("well", QVariant.String),
-                      QgsField("x", QVariant.Double),
-                      QgsField("y", QVariant.Double)]
+                      QgsField(f"x_{crs_lyr.authid()}", QVariant.Double),
+                      QgsField(f"y_{crs_lyr.authid()}", QVariant.Double)]
             vlayer = maplayer(feats_vert, "point_r1", fields, "Point",
                               False, crs_lyr)
             group.addLayer(vlayer)
