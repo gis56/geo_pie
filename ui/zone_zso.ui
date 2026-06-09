@@ -33,9 +33,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>30</y>
+     <y>10</y>
      <width>381</width>
-     <height>101</height>
+     <height>151</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -56,13 +56,23 @@
       </property>
      </widget>
     </item>
+    <item>
+     <widget class="QLabel" name="label_field">
+      <property name="text">
+       <string>Выберите поле с названием скважин</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QgsFieldComboBox" name="mFieldCB_wellname"/>
+    </item>
    </layout>
   </widget>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>140</y>
+     <y>170</y>
      <width>251</width>
      <height>30</height>
     </rect>
@@ -89,6 +99,11 @@
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsFieldComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsfieldcombobox.h</header>
+  </customwidget>
   <customwidget>
    <class>QgsMapLayerComboBox</class>
    <extends>QComboBox</extends>

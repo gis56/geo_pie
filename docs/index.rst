@@ -47,3 +47,4 @@
 
    dialogs
    cutclass
+   zso_comment

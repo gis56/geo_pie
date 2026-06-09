@@ -452,6 +452,19 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
 
     #checklist = []
     msgBox = QtWidgets.QMessageBox()
+    # Описание диалогового окна создание полей радиусов
+    # в аттрибутивной таблице слоя скважин
+    msgAttr = QtWidgets.QMessageBox()
+    msgAttr.setIcon(QMessageBox.Icon.Question)
+    msgAttr.setText("В выбранном слое не обнаружено ни одного поля с\
+                    атрибутами радиусов зон СО")
+    msgAttr.setInformativeText("Добавить в атрибутивную таблицу\
+                               необходимые поля?")
+    msgAttr.setWindowTitle("Атрибуты")
+    insButtn = msgAttr.addButton("Добавить", QMessageBox.ButtonRole.YesRole)
+    canslButtn = msgAttr.addButton("Пропустить", QMessageBox.ButtonRole.NoRole)
+
+    attr_existence = True
 
     LYR_CRS = 1
     PRJ_CRS = 2
@@ -459,25 +472,30 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
     def __init__(self, parent=None):
         super(formZonezso, self).__init__(parent)
         self.setupUi(self)
-
         self.prj_crs = QgsProject.instance().crs()
 
         # Реакция на выбор слоя в mLayer
         self.layer_ComboBox.currentIndexChanged.connect(self.activ_layerbox)
         self.layer_ComboBox.setFilters(QgsMapLayerProxyModel.PointLayer)
 
+        self.mFieldCB_wellname.setFilters(QgsFieldProxyModel.String|
+                                          QgsFieldProxyModel.LongLong|
+                                          QgsFieldProxyModel.Int)
         self.select_checkBox.setChecked(False)
 
     # Описание реакции mLayer на активацию и выбор
     def activ_layerbox(self):
         layer = False
+        #TODO
         layer = self.layer_ComboBox.currentLayer()
         if layer and layer.selectedFeatures() :
             self.select_checkBox.setEnabled(True)
         else:
             self.select_checkBox.setEnabled(False)
         # Определение crs выбранного слоя
-        if layer : self.layer_crs = layer.crs()
+        if layer :
+            self.layer_crs = layer.crs()
+            self.mFieldCB_wellname.setLayer(layer)
 
     # Перегрузка метода диалогового окна accept для
     # проверки заполненности всех полей формы
@@ -524,9 +542,14 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
             self.msgBox.information(self, "Проверка данных", msgTxt)
             return True
         else:
-            self.msgBox.critical(self, "Проверка данных",
-                                 "Отсутствуют поля радиусов")
-            return False
+            #self.msgBox.critical(self, "Проверка данных",
+            #                     "Отсутствуют поля радиусов")
+            self.msgAttr.exec()
+            if self.msgAttr.clickedButton() == self.insButtn:
+                self.attr_existence = False
+                return True
+            elif self.msgAttr.clickedButton() == self.canslButtn:
+                return False
 
     def getfeatures(self):
         layer = self.layer_ComboBox.currentLayer()
@@ -547,6 +570,12 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
             return self.layer_crs, self.prj_crs
         else:
             return self.layer_crs, False
+
+    def getnamefield (self):
+        return self.mFieldCB_wellname.currentField()
+
+    def getlayer(self):
+        return self.layer_ComboBox.currentLayer()
 #-----------------------------------------------------------------------------
 #       formZonezso
 #-----------------------------------------------------------------------------

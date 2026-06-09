@@ -1,7 +1,7 @@
 import os
 import math
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, QMetaType
 
 from qgis.core import (
                         Qgis,
@@ -23,7 +23,7 @@ from .utilib import *
 def zsozone():
     dialog = formZonezso()
     result = dialog.run()
-    if result:
+    if result and dialog.attr_existence:
         features = dialog.getfeatures()
         chlist = dialog.checklist
         azimut = dialog.getazimut()
@@ -41,6 +41,7 @@ def zsozone():
         feats_vert = [] # вершины квадрата
         feats_arr = []
         warn_txt = ''
+        name = dialog.getnamefield()
         #TODO
         for feat in features:
             if crs_prj : center = xform.transform(feat.geometry().asPoint())
@@ -49,62 +50,63 @@ def zsozone():
                 radiuss = (feat['r_n3'], feat['r_s3'],
                            feat['r_w3'], feat['r_o3'])
                 if (NULL in radiuss) or (0 in radiuss):
-                    warn_txt += f"\nРадиусы третьей зоны для {feat['name']}\
+                    warn_txt += f"\nРадиусы третьей зоны для {feat[name]}\
                         не указаны."
                 else:
                     zone = draw_ellipse(center, radiuss, azimut)
                     if crs_prj :
                         zone.transform(xform,
                                        QgsCoordinateTransform.ReverseTransform)
-                    attr_zone = [feat['name'],'R3']
+                    attr_zone = [feat[name],'R3']
                     feats_zone.append((zone, attr_zone))
-                    arrow = draw_arrow(center, radiuss, azimut, feat['name'],3)
+                    arrow = draw_arrow(center, radiuss, azimut, feat[name],3)
                     feats_arr.extend(arrow)
             if chlist[1]:
                 radiuss = (feat['r_n2'], feat['r_s2'],
                            feat['r_w2'], feat['r_o2'])
                 if (NULL in radiuss) or (0 in radiuss):
-                    warn_txt += f"\nРадиусы второй зоны для {feat['name']}\
+                    warn_txt += f"\nРадиусы второй зоны для {feat[name]}\
                         не указаны."
                 else:
                     zone = draw_ellipse(center, radiuss, azimut)
                     if crs_prj :
                         zone.transform(xform,
                                        QgsCoordinateTransform.ReverseTransform)
-                    attr_zone = [feat['name'],'R2']
+                    attr_zone = [feat[name],'R2']
                     feats_zone.append((zone, attr_zone))
-                    arrow = draw_arrow(center, radiuss, azimut, feat['name'],2)
+                    arrow = draw_arrow(center, radiuss, azimut, feat[name],2)
                     feats_arr.extend(arrow)
             if chlist[0]:
                 r = feat['r1']
                 if (r == NULL) or (r == 0):
-                    warn_txt += f"\nРадиус первой зоны для {feat['name']}\
+                    warn_txt += f"\nРадиус первой зоны для {feat[name]}\
                         не указан."
                 else:
-                    zone, verts = draw_qudrat(center, r, azimut, feat['name'])
+                    zone, verts = draw_qudrat(center, r, azimut, feat[name])
                     #if crs_prj :
                     #    zone.transform(xform,
                     #                   QgsCoordinateTransform.ReverseTransform)
-                    attr_zone = [feat['name'],'r1']
+                    attr_zone = [feat[name],'r1']
                     feats_zone.append((zone, attr_zone))
                     #
                     if verts : feats_vert.extend(verts)
                     #
-                    arrow = draw_arrow(center,(r,r,r,r),azimut,feat['name'],1)
+                    arrow = draw_arrow(center,(r,r,r,r),azimut,feat[name],1)
                     feats_arr.extend(arrow)
 
         path = os.path.dirname(__file__)
-        fields = [QgsField("well", QVariant.String),
-                  QgsField("nameradius", QVariant.String)
-                 ]
         group = creategroup("zso")
-        vlayer = maplayer(feats_zone, "zone_zso", fields, "Polygon",
-                          False, crs_lyr)
-        vlayer.loadNamedStyle(f'{path}/legstyle/zso.qml')
-        group.addLayer(vlayer)
+        if feats_zone:
+            fields = [QgsField("well", QVariant.String),
+                    QgsField("nameradius", QVariant.String)
+                    ]
+            vlayer = maplayer(feats_zone, "zone_zso", fields, "Polygon",
+                            False, crs_lyr)
+            vlayer.loadNamedStyle(f'{path}/legstyle/zso.qml')
+            group.addLayer(vlayer)
 
         #
-        if verts :
+        if feats_vert :
             fields = [QgsField("well", QVariant.String),
                       QgsField(f"x_{crs_lyr.authid()}", QVariant.Double),
                       QgsField(f"y_{crs_lyr.authid()}", QVariant.Double)]
@@ -112,16 +114,30 @@ def zsozone():
                               False, crs_lyr)
             group.addLayer(vlayer)
         #
-
-        fields = [QgsField("well", QVariant.String),
-                  QgsField("nameradius", QVariant.String),
-                  QgsField("radius", QVariant.Int)
-                 ]
-        vlayer = maplayer(feats_arr, "arrow_zone", fields, "LineString",
-                          False, crs_lyr)
-        vlayer.loadNamedStyle(f'{path}/legstyle/zso_arrow.qml')
-        group.addLayer(vlayer)
+        if feats_arr:
+            fields = [QgsField("well", QVariant.String),
+                    QgsField("nameradius", QVariant.String),
+                    QgsField("radius", QVariant.Int)
+                    ]
+            vlayer = maplayer(feats_arr, "arrow_zone", fields, "LineString",
+                            False, crs_lyr)
+            vlayer.loadNamedStyle(f'{path}/legstyle/zso_arrow.qml')
+            group.addLayer(vlayer)
         txt = "Результат в группе zso." + warn_txt
+    elif result and not dialog.attr_existence:
+        layer = dialog.getlayer()
+        layer.dataProvider().addAttributes([
+                                    QgsField("r1", QMetaType.Type.Double),
+                                    QgsField("r_n2", QMetaType.Type.Double),
+                                    QgsField("r_s2", QMetaType.Type.Double),
+                                    QgsField("r_w2", QMetaType.Type.Double),
+                                    QgsField("r_o2", QMetaType.Type.Double),
+                                    QgsField("r_n3", QMetaType.Type.Double),
+                                    QgsField("r_s3", QMetaType.Type.Double),
+                                    QgsField("r_w3", QMetaType.Type.Double),
+                                    QgsField("r_o3", QMetaType.Type.Double)])
+        layer.updateFields()
+        txt = "Добавление атрибутов радиусов"
     else: txt = "Отмена."
     del dialog
     return Qgis.Success, txt, "Завершено"
