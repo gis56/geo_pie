@@ -616,7 +616,104 @@ class formGeojsontoShape(QtWidgets.QDialog, FORM_CLASS_5):
     def cadastr_path(self):
         return self.cadastr_list_file.lineEdit().text()
 #-----------------------------------------------------------------------------
-#   formCSVshape
+# formGeojsontoShape
 #-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------
+#  Диалог зоны ЗСО
+#  formBufferIntersectZone
+#-----------------------------------------------------------------------------
+FORM_CLASS_6, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui/buffer_intersect.ui'))
 
+class formBufferIntersectZone(QtWidgets.QDialog, FORM_CLASS_6):
+
+    #checklist = []
+    msgBox = QtWidgets.QMessageBox()
+    # Описание диалогового окна создание полей радиусов
+    # в аттрибутивной таблице слоя скважин
+    LYR_CRS = 1
+    PRJ_CRS = 2
+
+    def __init__(self, parent=None):
+        super(formBufferIntersectZone, self).__init__(parent)
+        self.setupUi(self)
+        self.prj_crs = QgsProject.instance().crs()
+
+        # Реакция на выбор слоя в mLayer
+        self.layer_ComboBox.currentIndexChanged.connect(self.activ_layerbox)
+        self.layer_ComboBox.setFilters(QgsMapLayerProxyModel.PointLayer)
+
+        self.radius_mField.setFilters(QgsFieldProxyModel.Numeric) # Double
+
+        self.select_checkBox.setChecked(False)
+
+    # Описание реакции mLayer на активацию и выбор
+    def activ_layerbox(self):
+        layer = False
+        layer = self.layer_ComboBox.currentLayer()
+        if layer and layer.selectedFeatures() :
+            self.select_checkBox.setEnabled(True)
+        else:
+            self.select_checkBox.setEnabled(False)
+        # Определение crs выбранного слоя
+        if layer :
+            self.layer_crs = layer.crs()
+            self.radius_mField.setLayer(layer)
+
+    # Перегрузка метода диалогового окна accept для
+    # проверки заполненности всех полей формы
+    def accept (self) :
+        if self.checkzone() : self.done(QDialog.DialogCode.Accepted)
+
+    # Подготовка и запуск формы диалога
+    def run(self):
+        self.exec()
+        return self.result()
+
+    # Проверка наличия полей с радиусами
+    def checkzone (self) :
+        layer = self.layer_ComboBox.currentLayer()
+
+        if not self.layer_crs.isGeographic() :
+            self.current_crs = self.LYR_CRS
+            msgTxt = f"Проекция слоя: {self.layer_crs.authid()} - \
+{self.layer_crs.description()}"
+            self.msgBox.information(self, 'Проверка проекции', msgTxt)
+            #return True
+        elif not self.prj_crs.isGeographic() :
+            self.current_crs = self.PRJ_CRS
+            msgTxt = f"Проекция проекта: {self.prj_crs.authid()} - \
+{self.prj_crs.description()}"
+            self.msgBox.information(self, "Проверка проекции", msgTxt)
+            #return True
+        else:
+            self.msgBox.critical(self, "Проверка проекции",
+                                 "Нет данных о проекции.")
+            return False
+        if self.radius_mField.currentField():
+            return True
+        else:
+            self.msgBox.critical(self, "Проверка данных",
+                            "Не выбрано поле радиусов пластов пересечения.")
+            return False
+
+    def getfeatures(self):
+        layer = self.layer_ComboBox.currentLayer()
+        if self.select_checkBox.isChecked() :
+            features = layer.selectedFeatures()
+        else :
+            features=[feature for feature in layer.getFeatures()]
+        return features
+
+    def getnamefield (self):
+        return self.radius_mField.currentField()
+
+    def getcrs(self):
+        if self.current_crs == self.PRJ_CRS :
+            return self.layer_crs, self.prj_crs
+        else:
+            return self.layer_crs, False
+#-----------------------------------------------------------------------------
+#       formBufferIntersectZone
+#-----------------------------------------------------------------------------

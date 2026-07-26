@@ -32,6 +32,7 @@ from .wells_matrix import *
 from .zso_zone import *
 from .curve_wells import *
 from .cadastr_js import *
+from .inter_buff import *
 import os.path
 import webbrowser
 
@@ -196,6 +197,13 @@ class GeoPie:
             callback=self.helpbook,
             parent=self.iface.mainWindow())
 
+        icon_path = self.plugin_dir + '/icons/danger.png'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Пласты пересечения'),
+            callback=self.buffer_intersect,
+            parent=self.iface.mainWindow())
+
         self.first_start = True
 
     def unload(self):
@@ -213,6 +221,7 @@ class GeoPie:
     def matrix(self):
         lvl, txt, ttl = dist_well_table()
         self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
+
     """ Отрисовка зоны ЗСО
         эллипсы, квадраты, радиусы
     """
@@ -224,10 +233,17 @@ class GeoPie:
     """
     def curvwells (self):
         cut_curvwell(self.iface)
+
     """ Скачивание кадастровых зон в формате GeoJson
     """
     def cadastr_zone(self):
         cadastrshp(self.iface)
+
+    """ Построение зоны пластов пересечения скважин
+    """
+    def buffer_intersect (self):
+        lvl, txt, ttl = inter_buffer()
+        self.iface.messageBar().pushMessage(ttl, txt, level=lvl, duration=5)
 
     def helpbook (self):
         webbrowser.open_new_tab('https://geo-pie.readthedocs.io/')
