@@ -620,7 +620,7 @@ class formGeojsontoShape(QtWidgets.QDialog, FORM_CLASS_5):
 #-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
-#  Диалог зоны ЗСО
+#  Диалог буферов зон пластов пересечения
 #  formBufferIntersectZone
 #-----------------------------------------------------------------------------
 FORM_CLASS_6, _ = uic.loadUiType(os.path.join(
@@ -647,6 +647,12 @@ class formBufferIntersectZone(QtWidgets.QDialog, FORM_CLASS_6):
         self.radius_mField.setFilters(QgsFieldProxyModel.Numeric) # Double
 
         self.select_checkBox.setChecked(False)
+        # doubleSpinBox точность подбора площади буфера
+        self.decim_SpinBox.setDecimals(4)
+        self.decim_SpinBox.setSuffix(' %')
+        self.decim_SpinBox.setValue(0.001)
+        self.decim_SpinBox.setMinimum(0.0001)
+        self.decim_SpinBox.setSingleStep(0.001)
 
     # Описание реакции mLayer на активацию и выбор
     def activ_layerbox(self):
@@ -714,6 +720,9 @@ class formBufferIntersectZone(QtWidgets.QDialog, FORM_CLASS_6):
             return self.layer_crs, self.prj_crs
         else:
             return self.layer_crs, False
+
+    def getDecimal (self):
+        return self.decim_SpinBox.value()
 #-----------------------------------------------------------------------------
 #       formBufferIntersectZone
 #-----------------------------------------------------------------------------

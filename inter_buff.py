@@ -44,6 +44,7 @@ def inter_buffer():
         feats_circle = []
         list_circle_geom = []
         name = dialog.getnamefield()
+        decim = dialog.getDecimal()
         for feat in features:
             # трасформация в метровую СК
             if crs_prj : center = xform.transform(feat.geometry().asPoint())
@@ -68,28 +69,46 @@ def inter_buffer():
                 feats_circle.append((circle_geom, attr_circle))
 
         # генерация объединения зон и подборка буфера
+        # union_list =union_geom.asGeometryCollection()
+        # list_circle = feats_circle.copy()
+        # for union_geom in union_list:
+        #   for index, value in enumerate(list_circle):
+        #       circle_geom, attr_circle = value
+        #       if circle_geom.within(union_geom):
+        #           sum_area_circle += attr_circle
+        #           del list_circle[index]
         if list_circle_geom:
             union_geom = QgsGeometry().unaryUnion(list_circle_geom)
-            area_unio = union_geom.area() # площадь обЪединения
+            #
+            union_list =union_geom.asGeometryCollection()
+            list_circle = feats_circle.copy()
+            feats_buffer = []
+            for buffer_geom in union_list:
+                sum_area_circles = 0
+                for index, value in enumerate(list_circle):
+                    circle_geom, attr_circle = value
+                    pnt = circle_geom.centroid()
+                    if pnt.within(buffer_geom):
+                        sum_area_circles += attr_circle[0]
 
-            buffer_geom = union_geom
-            area_buff = area_unio
-            rule = sum_area_circles / 100000
-            while True:
-                r1 = math.sqrt(area_buff/math.pi)
-                r2 = math.sqrt((sum_area_circles-area_buff)/math.pi + r1*r1)
-                buff = r2 - r1
-                buffer_geom = buffer_geom.buffer(buff, 336)
-                area_buff = buffer_geom.area() # площадь буфера
-                if abs(sum_area_circles - area_buff) < rule: break
+                area_unio = buffer_geom.area() # площадь обЪединения
+                area_buff = area_unio
+                rule = (sum_area_circles / 100 ) * decim
+                while True:
+                    r1 = math.sqrt(area_buff/math.pi)
+                    r2 = math.sqrt((sum_area_circles-area_buff)/math.pi + r1*r1)
+                    buff = r2 - r1
+                    buffer_geom = buffer_geom.buffer(buff, 336)
+                    area_buff = buffer_geom.area() # площадь буфера
+                    if abs(sum_area_circles - area_buff) < rule: break
 
-            if crs_prj :
-                buffer_geom.transform(xform,
+                if crs_prj :
+                    buffer_geom.transform(xform,
                                       QgsCoordinateTransform.ReverseTransform)
 
-            attr_buffer = [area_buff, area_unio, sum_area_circles,
-                           sum_area_circles - area_buff]
-            feats_buffer = [(buffer_geom, attr_buffer)]
+                attr_buffer = [area_buff, area_unio, sum_area_circles,
+                               sum_area_circles - area_buff]
+                feats_buffer.append((buffer_geom, attr_buffer))
         else: txt += "\nНет значений радиусов."
 
         #path = os.path.dirname(__file__)

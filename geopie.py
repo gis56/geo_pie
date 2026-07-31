@@ -197,7 +197,7 @@ class GeoPie:
             callback=self.helpbook,
             parent=self.iface.mainWindow())
 
-        icon_path = self.plugin_dir + '/icons/danger.png'
+        icon_path = self.plugin_dir + '/icons/buffer.svg'
         self.add_action(
             icon_path,
             text=self.tr(u'Пласты пересечения'),

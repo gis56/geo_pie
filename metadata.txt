@@ -8,7 +8,7 @@ name=GeoPie
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
 description=Набор плагинов
-version=0.5.1
+version=0.5.2
 author=Evgeniy Shlunev
 email=jh56@bk.ru
 
@@ -22,7 +22,10 @@ repository=https://github.com/gis56/geo_pie
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-changelog=      * Слой угловых точек первой зоны СО
+changelog=      * Диалог выбора точности подбора площади буфера слоев пересечения
+		* Автоматическое создание нескольких буферов слоев пересечения
+		* Добавлен модуль генерации зоны слоев пересечения скважин
+		* Слой угловых точек первой зоны СО
 		* Трансформация координат  в модуле Зон СО
 		* Адаптация проекта к QGIS 4.0 (Qt6)
 
