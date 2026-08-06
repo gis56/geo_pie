@@ -36,14 +36,17 @@
 .. toctree::
    :maxdepth: 2 
    :caption: Содержание:
+   :hidden:
 
    curwells
    matrix
    zso
+   interbuff
 
 .. toctree::
    :maxdepth: 2 
    :caption: Комментарии:
+   :hidden:
 
    dialogs
    cutclass

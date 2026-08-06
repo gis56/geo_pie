@@ -33,7 +33,7 @@ changelog=      * Диалог выбора точности подбора пл
 tags=python, zso, distance
 
 homepage=https://geo-pie.readthedocs.io/
-icon=icons/zso48.svg
+icon=icons/geopie.png
 # experimental flag
 experimental=True
 

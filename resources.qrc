@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/save_attributes" >
-        <file>icon.png</file>
+    <qresource prefix="/plugins/geo_pie" >
+        <file>geopie.png</file>
     </qresource>
 </RCC>
