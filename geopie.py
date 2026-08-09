@@ -190,18 +190,18 @@ class GeoPie:
             callback=self.cadastr_zone,
             parent=self.iface.mainWindow())
 
-        icon_path = self.plugin_dir + '/icons/rtd_help48.svg'
-        self.add_action(
-            icon_path,
-            text=self.tr(u'Справка'),
-            callback=self.helpbook,
-            parent=self.iface.mainWindow())
-
         icon_path = self.plugin_dir + '/icons/buffer.svg'
         self.add_action(
             icon_path,
             text=self.tr(u'Пласты пересечения'),
             callback=self.buffer_intersect,
+            parent=self.iface.mainWindow())
+
+        icon_path = self.plugin_dir + '/icons/rtd_help48.svg'
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Справка'),
+            callback=self.helpbook,
             parent=self.iface.mainWindow())
 
         self.first_start = True

@@ -46,40 +46,26 @@ def inter_buffer():
         name = dialog.getnamefield()
         decim = dialog.getDecimal()
         for feat in features:
-            # трасформация в метровую СК
-            if crs_prj : center = xform.transform(feat.geometry().asPoint())
-            else: center = feat.geometry().asPoint()
             # генерация круговых зон вокруг скважин
             radius = feat[name]
             if (radius == NULL) or (radius == 0):
                 txt += f"\nРадиус зоны для ID: {feat.id()+1} не указан."
             else:
+                # трасформация в метровую СК
+                if crs_prj : center = xform.transform(feat.geometry().asPoint())
+                else: center = feat.geometry().asPoint()
+
                 circle = QgsCircle(QgsPoint(center.x(), center.y()), radius)
                 circle_wkt = circle.toPolygon(36).asWkt()
                 circle_geom = QgsGeometry().fromWkt(circle_wkt)
                 circle_area = circle.area()
                 sum_area_circles += circle_area # счетчик площади кругов
                 list_circle_geom.append(circle_geom) # список зон окружностей
-                # обратная трансформация в исходную СК
-                if crs_prj :
-                    circle_geom.transform(xform,
-                                      QgsCoordinateTransform.ReverseTransform)
-
                 attr_circle = [circle_area]
                 feats_circle.append((circle_geom, attr_circle))
 
-        # генерация объединения зон и подборка буфера
-        # union_list =union_geom.asGeometryCollection()
-        # list_circle = feats_circle.copy()
-        # for union_geom in union_list:
-        #   for index, value in enumerate(list_circle):
-        #       circle_geom, attr_circle = value
-        #       if circle_geom.within(union_geom):
-        #           sum_area_circle += attr_circle
-        #           del list_circle[index]
         if list_circle_geom:
             union_geom = QgsGeometry().unaryUnion(list_circle_geom)
-            #
             union_list =union_geom.asGeometryCollection()
             list_circle = feats_circle.copy()
             feats_buffer = []
@@ -111,6 +97,12 @@ def inter_buffer():
                 feats_buffer.append((buffer_geom, attr_buffer))
         else: txt += "\nНет значений радиусов."
 
+        # обратная трансформация в исходную СК
+        if crs_prj :
+            for feat in list_circle:
+                circle_geom, attr = feat
+                circle_geom.transform(xform,
+                                      QgsCoordinateTransform.ReverseTransform)
         #path = os.path.dirname(__file__)
         group = creategroup("intersect")
         if feats_circle:
