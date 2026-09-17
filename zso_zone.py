@@ -12,7 +12,9 @@ from qgis.core import (
                         QgsPointXY,
                         QgsCoordinateReferenceSystem,
                         QgsCoordinateTransform,
-                        NULL
+                        NULL,
+                        QgsCircle,
+                        QgsPoint
                       )
 from .pie_dial import formZonezso
 from .utilib import *
@@ -27,6 +29,7 @@ def zsozone():
         features = dialog.getfeatures()
         chlist = dialog.checklist
         azimut = dialog.getazimut()
+        r1type = dialog.r1type()
 
         # Подготовка к трансформации CRS
         global crs_prj
@@ -82,7 +85,11 @@ def zsozone():
                     warn_txt += f"\nРадиус первой зоны для {feat[name]}\
                         не указан."
                 else:
-                    zone, verts = draw_qudrat(center, r, azimut, feat[name])
+                    if r1type:
+                        zone = draw_circle(center, r)
+                        verts = False
+                    else:
+                        zone, verts = draw_qudrat(center, r, azimut, feat[name])
                     #if crs_prj :
                     #    zone.transform(xform,
                     #                   QgsCoordinateTransform.ReverseTransform)
@@ -169,6 +176,22 @@ def draw_qudrat (center, radius, azimut, wname):
         return geom, feats
     else: return geom, False
 
+#-----------------------------------------------------------------------------
+#   Геометрия первой зоны ЗСО
+#   (окружность)
+#-----------------------------------------------------------------------------
+def draw_circle (center, radius):
+
+    cx = center.x()
+    cy = center.y()
+    circle = QgsCircle(QgsPoint(center.x(), center.y()), radius)
+    circle_wkt = circle.toPolygon(36).asWkt()
+    circle_geom = QgsGeometry().fromWkt(circle_wkt)
+
+    if crs_prj :
+        circle_geom.transform(xform,
+                       QgsCoordinateTransform.ReverseTransform)
+    return circle_geom
 #-----------------------------------------------------------------------------
 # Отрисовка эллипса
 # center - центр эллипса QgsPoint()

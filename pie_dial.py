@@ -482,6 +482,7 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
                                           QgsFieldProxyModel.LongLong|
                                           QgsFieldProxyModel.Int)
         self.select_checkBox.setChecked(False)
+        self.circle_checkBox.setChecked(False)
 
     # Описание реакции mLayer на активацию и выбор
     def activ_layerbox(self):
@@ -576,6 +577,9 @@ class formZonezso(QtWidgets.QDialog, FORM_CLASS_4):
 
     def getlayer(self):
         return self.layer_ComboBox.currentLayer()
+
+    def r1type(self):
+        return self.circle_checkBox.isChecked()
 #-----------------------------------------------------------------------------
 #       formZonezso
 #-----------------------------------------------------------------------------

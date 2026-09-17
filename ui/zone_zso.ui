@@ -73,7 +73,7 @@
     <rect>
      <x>10</x>
      <y>170</y>
-     <width>251</width>
+     <width>332</width>
      <height>30</height>
     </rect>
    </property>
@@ -96,6 +96,25 @@
      </widget>
     </item>
    </layout>
+  </widget>
+  <widget class="QCheckBox" name="circle_checkBox">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>210</y>
+     <width>371</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>371</width>
+     <height>16777215</height>
+    </size>
+   </property>
+   <property name="text">
+    <string>Первая зона окружностью</string>
+   </property>
   </widget>
  </widget>
  <customwidgets>
